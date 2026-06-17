@@ -1,0 +1,66 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider } from './contexts/AuthContext'
+import ProtectedRoute from './components/ProtectedRoute'
+
+// Marketing pages (TypeScript)
+import Home from './pages/Home'
+import Services from './pages/Services'
+import FarmMonitoring from './pages/FarmMonitoring'
+import About from './pages/About'
+import Gallery from './pages/Gallery'
+import Contact from './pages/Contact'
+
+// Auth + Dashboard (existing JSX — works because allowJs: true)
+import Login from './pages/Login'
+import DashboardLayout from './pages/dashboard/DashboardLayout'
+import Overview from './pages/dashboard/Overview'
+import Farms from './pages/dashboard/Farms'
+import FarmDetail from './pages/dashboard/FarmDetail'
+import Tasks from './pages/dashboard/Tasks'
+import Reports from './pages/dashboard/Reports'
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          {/* Marketing site */}
+          <Route path="/"                element={<Home />} />
+          <Route path="/services"        element={<Services />} />
+          <Route path="/farm-monitoring" element={<FarmMonitoring />} />
+          <Route path="/about"           element={<About />} />
+          <Route path="/gallery"         element={<Gallery />} />
+          <Route path="/contact"         element={<Contact />} />
+
+          {/* Auth */}
+          <Route path="/login" element={<Login />} />
+
+          {/* Dashboard (protected) */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Overview />} />
+            <Route path="farms" element={<Farms />} />
+            <Route path="farms/:id" element={<FarmDetail />} />
+            <Route
+              path="tasks"
+              element={
+                <ProtectedRoute roles={['admin', 'field_team']}>
+                  <Tasks />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="reports" element={<Reports />} />
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
+  )
+}
