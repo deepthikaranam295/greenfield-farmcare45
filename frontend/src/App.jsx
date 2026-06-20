@@ -9,6 +9,7 @@ import About from './pages/About'
 import Gallery from './pages/Gallery'
 import Contact from './pages/Contact'
 import Login from './pages/Login'
+import Signup from './pages/Signup'
 
 import DashboardLayout from './pages/dashboard/DashboardLayout'
 import Overview from './pages/dashboard/Overview'
@@ -32,7 +33,8 @@ export default function App() {
           <Route path="/contact"         element={<Contact />} />
 
           {/* Auth */}
-          <Route path="/login" element={<Login />} />
+          <Route path="/login"  element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
 
           {/* Dashboard (protected) */}
           <Route
