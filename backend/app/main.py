@@ -47,6 +47,7 @@ def health():
 
 @app.post("/api/seed-users", include_in_schema=False)
 def seed_users():
+    import traceback
     from sqlalchemy.orm import Session
     from app.database import SessionLocal
     from app.models.user import User, UserRole
@@ -66,6 +67,9 @@ def seed_users():
                 created.append(email)
         db.commit()
         return {"created": created, "message": "Done"}
+    except Exception as e:
+        db.rollback()
+        return JSONResponse(status_code=500, content={"error": str(e), "trace": traceback.format_exc()})
     finally:
         db.close()
 
