@@ -1,11 +1,14 @@
+import os
+from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.logging import logger
 from app.middleware.logging import LoggingMiddleware
-from app.routers import auth, farms, tasks, reports
+from app.routers import auth, farms, tasks, reports, users, cameras
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -24,9 +27,11 @@ app.add_middleware(
 app.add_middleware(LoggingMiddleware)
 
 app.include_router(auth.router)
+app.include_router(users.router)
 app.include_router(farms.router)
 app.include_router(tasks.router)
 app.include_router(reports.router)
+app.include_router(cameras.router)
 
 
 @app.exception_handler(Exception)
@@ -38,3 +43,16 @@ async def global_exception_handler(request: Request, exc: Exception):
 @app.get("/health", tags=["Health"])
 def health():
     return {"status": "ok", "app": settings.APP_NAME}
+
+
+# Serve React frontend from dist folder (production / demo sharing)
+_DIST = Path(__file__).parent.parent.parent / "frontend" / "dist"
+if _DIST.exists():
+    app.mount("/assets", StaticFiles(directory=str(_DIST / "assets")), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def serve_spa(full_path: str):
+        file = _DIST / full_path
+        if file.exists() and file.is_file():
+            return FileResponse(str(file))
+        return FileResponse(str(_DIST / "index.html"))

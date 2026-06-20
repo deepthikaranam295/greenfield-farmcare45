@@ -14,7 +14,7 @@ export default function Footer() {
               <span className="font-heading font-bold text-lg">GreenField Farm Care</span>
             </div>
             <p className="text-gf-pale/80 text-sm leading-relaxed">
-              End-to-end farm management in Anantapur district, Andhra Pradesh.
+              End-to-end farm management for landowners across India.
             </p>
             <p className="text-gf-pale/60 text-xs mt-3">
               Serving city-based farm owners who want peace of mind.
@@ -27,10 +27,10 @@ export default function Footer() {
               Service Areas
             </h4>
             <ul className="space-y-1 text-sm text-white/80">
-              <li>Anantapur District (primary)</li>
-              <li>Kurnool District (expanding)</li>
-              <li>Kadapa District (expanding)</li>
-              <li>Chittoor District (expanding)</li>
+              <li>South India (primary)</li>
+              <li>West India (expanding)</li>
+              <li>North India (expanding)</li>
+              <li>East India (expanding)</li>
             </ul>
           </div>
 
@@ -59,7 +59,7 @@ export default function Footer() {
               </li>
               <li className="flex items-center gap-2">
                 <span>📍</span>
-                <span>Anantapur, Andhra Pradesh</span>
+                <span>India</span>
               </li>
             </ul>
             <div className="flex gap-3 mt-4">
@@ -77,7 +77,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gf-mid/30 mt-10 pt-6 text-center text-xs text-white/40">
-          © {new Date().getFullYear()} GreenField Farm Care. All rights reserved. · Anantapur, AP
+          © {new Date().getFullYear()} GreenField Farm Care. All rights reserved.
         </div>
       </div>
     </footer>

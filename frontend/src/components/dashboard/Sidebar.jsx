@@ -1,11 +1,15 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 
+const ALL   = ['admin', 'farm_owner', 'farm_worker', 'field_team', 'customer']
+const STAFF = ['admin', 'farm_owner', 'farm_worker', 'field_team']
+
 const navItems = [
-  { to: '/dashboard',         label: 'Overview',  icon: '🏠', roles: ['admin', 'field_team', 'customer'] },
-  { to: '/dashboard/farms',   label: 'Farms',     icon: '🌾', roles: ['admin', 'field_team', 'customer'] },
-  { to: '/dashboard/tasks',   label: 'Tasks',     icon: '✅', roles: ['admin', 'field_team'] },
-  { to: '/dashboard/reports', label: 'Reports',   icon: '📋', roles: ['admin', 'field_team', 'customer'] },
+  { to: '/dashboard',         label: 'Overview',  icon: '🏠', roles: ALL },
+  { to: '/dashboard/farms',   label: 'Farms',     icon: '🌾', roles: ALL },
+  { to: '/dashboard/tasks',   label: 'Tasks',     icon: '✅', roles: STAFF },
+  { to: '/dashboard/reports', label: 'Reports',   icon: '📋', roles: ALL },
+  { to: '/dashboard/users',   label: 'Users',     icon: '👥', roles: ['admin'] },
 ]
 
 export default function Sidebar({ open, onClose }) {

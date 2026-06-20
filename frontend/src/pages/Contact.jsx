@@ -186,7 +186,7 @@ export default function Contact() {
                     required
                     value={form.farmLocation}
                     onChange={handleChange}
-                    placeholder="Village / Mandal, Anantapur"
+                    placeholder="Village / Town, State"
                     className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-gf-mid focus:ring-1 focus:ring-gf-mid transition-colors"
                   />
                 </div>
@@ -248,7 +248,7 @@ export default function Contact() {
                   {[
                     '✓ Response within 24 hours',
                     '✓ Free site visit',
-                    '✓ Serving Anantapur',
+                    '✓ Serving Farms Nationwide',
                   ].map(badge => (
                     <span key={badge} className="text-xs text-gf-mid font-heading font-semibold">
                       {badge}
@@ -317,8 +317,8 @@ export default function Contact() {
                 </h3>
                 <p className="text-sm text-gray-600 leading-relaxed">
                   Currently serving farms across{' '}
-                  <strong className="text-gf-dark">Anantapur district</strong>, Andhra Pradesh.
-                  Expanding to Kurnool, Kadapa and Chittoor.
+                  <strong className="text-gf-dark">South India</strong>.
+                  Expanding to more regions across the country.
                 </p>
               </div>
             </div>

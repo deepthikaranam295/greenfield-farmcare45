@@ -57,10 +57,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-36">
           <div className="max-w-2xl">
             <span className="inline-block bg-gf-pale text-gf-dark text-xs font-heading font-semibold px-3 py-1 rounded-full mb-6 tracking-wide uppercase">
-              Anantapur District · AP
+              Smart Farm Management
             </span>
             <h1 className="font-heading font-extrabold text-4xl md:text-5xl lg:text-6xl leading-tight mb-6">
-              Your Farm in Anantapur.{' '}
+              Your Farm.{' '}
               <span className="text-gf-pale">Fully Managed.</span>{' '}
               While You Work From Anywhere.
             </h1>
@@ -144,7 +144,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-12 text-white text-center">
             {[
               '7 Services Offered',
-              'Anantapur District Specialists',
+              'Nationwide Coverage',
               '100% Transparent Reporting',
             ].map((item, i) => (
               <div key={item} className="flex items-center gap-3">

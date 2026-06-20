@@ -6,7 +6,7 @@ import Badge from '../../components/dashboard/Badge'
 import Pagination from '../../components/dashboard/Pagination'
 
 const PLANS = ['none', 'basic', 'standard', 'premium']
-const DISTRICTS = ['Anantapur', 'Kurnool', 'Kadapa', 'Chittoor', 'Other']
+const DISTRICTS = ['Andhra Pradesh', 'Telangana', 'Karnataka', 'Maharashtra', 'Tamil Nadu', 'Other']
 
 export default function Farms() {
   const { user } = useAuth()
@@ -17,6 +17,15 @@ export default function Farms() {
   const [pages, setPages] = useState(1)
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [search, setSearch] = useState('')
+
+  const filtered = farms.filter(f => {
+    const q = search.toLowerCase()
+    return !q || f.name?.toLowerCase().includes(q) ||
+      f.village?.toLowerCase().includes(q) ||
+      f.mandal?.toLowerCase().includes(q) ||
+      f.district?.toLowerCase().includes(q)
+  })
 
   const load = (p = 1) => {
     setLoading(true)
@@ -32,19 +41,28 @@ export default function Farms() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="font-heading font-bold text-2xl text-gf-dark">Farms</h1>
           <p className="text-gray-500 text-sm font-body">{total} total farms</p>
         </div>
-        {isAdmin && (
-          <button
-            onClick={() => setShowModal(true)}
-            className="bg-gf-mid text-white font-heading font-semibold px-4 py-2 rounded-lg text-sm hover:bg-gf-light transition-colors"
-          >
-            + Add Farm
-          </button>
-        )}
+        <div className="flex gap-2 items-center">
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by name or location…"
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid w-56"
+          />
+          {isAdmin && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="bg-gf-mid text-white font-heading font-semibold px-4 py-2 rounded-lg text-sm hover:bg-gf-light transition-colors whitespace-nowrap"
+            >
+              + Add Farm
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -67,7 +85,9 @@ export default function Farms() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {farms.map(farm => (
+                  {filtered.length === 0 ? (
+                    <tr><td colSpan={6} className="py-10 text-center text-gray-400 text-sm font-body">No farms match your search.</td></tr>
+                  ) : filtered.map(farm => (
                     <tr key={farm.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-5 py-3">
                         <p className="font-body font-medium text-gf-dark">{farm.name}</p>
@@ -114,7 +134,7 @@ export default function Farms() {
 function AddFarmModal({ onClose, onCreated }) {
   const [form, setForm] = useState({
     customer_id: '', name: '', village: '', mandal: '',
-    district: 'Anantapur', size_acres: '', subscription_plan: 'none',
+    district: '', size_acres: '', subscription_plan: 'none',
   })
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)

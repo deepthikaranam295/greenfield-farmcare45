@@ -15,7 +15,7 @@ export default function Gallery() {
             Our Work — Farms We Have Transformed
           </h1>
           <p className="text-white/70 text-lg max-w-2xl mx-auto">
-            Real projects from Anantapur district. Every photo tells a story of a farm that
+            Real projects from farms we manage. Every photo tells a story of a farm that
             went from neglected to fully managed.
           </p>
         </div>
@@ -50,7 +50,7 @@ export default function Gallery() {
             Project Photos Coming Soon
           </h2>
           <p className="text-gray-500 leading-relaxed mb-6">
-            We are currently completing our first farm installations in Anantapur district.
+            We are currently completing our first farm installations.
             Real photos from real farms will be added here as each project is completed.
           </p>
           <div className="bg-gf-pale rounded-2xl px-8 py-6 inline-block text-sm text-gf-dark font-heading font-medium">
@@ -70,7 +70,7 @@ export default function Gallery() {
               {
                 icon: '🌿',
                 title: 'Fencing Projects',
-                desc: 'Before and after photos of perimeter fencing across different terrains in Anantapur.',
+                desc: 'Before and after photos of perimeter fencing across different farm terrains.',
               },
               {
                 icon: '💧',

@@ -80,7 +80,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {open && (
-        <div className="lg:hidden bg-gf-dark border-t border-gf-mid/40 px-4 pb-4">
+        <div className="lg:hidden bg-gf-dark border-t border-gf-mid/40 px-4 pb-5">
           {links.map(l => (
             <NavLink
               key={l.to}
@@ -96,6 +96,36 @@ export default function Navbar() {
               {l.label}
             </NavLink>
           ))}
+
+          {/* Auth buttons */}
+          <div className="mt-4 pt-4 border-t border-gf-mid/40 flex flex-col gap-2">
+            {user ? (
+              <Link
+                to="/dashboard"
+                onClick={() => setOpen(false)}
+                className="block w-full px-4 py-3 rounded-lg text-sm font-body font-semibold text-center bg-gf-pale text-gf-dark hover:bg-white active:bg-gf-pale/80 transition-colors"
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  onClick={() => setOpen(false)}
+                  className="block w-full px-4 py-3 rounded-lg text-sm font-body font-semibold text-center text-white border border-white/30 hover:bg-white/10 active:bg-white/20 transition-colors"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/signup"
+                  onClick={() => setOpen(false)}
+                  className="block w-full px-4 py-3 rounded-lg text-sm font-body font-semibold text-center bg-gf-pale text-gf-dark hover:bg-white active:bg-gf-pale/80 transition-colors"
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       )}
     </nav>

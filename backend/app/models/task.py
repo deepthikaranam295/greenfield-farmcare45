@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timezone, date
-from sqlalchemy import String, Date, DateTime, ForeignKey, Text, Enum as SAEnum
+from typing import Optional
+from sqlalchemy import String, Boolean, Date, DateTime, ForeignKey, Text, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
@@ -35,6 +36,8 @@ class Task(Base):
     scheduled_date: Mapped[date] = mapped_column(Date, nullable=True)
     completed_date: Mapped[date] = mapped_column(Date, nullable=True)
     notes: Mapped[str] = mapped_column(Text, nullable=True)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 

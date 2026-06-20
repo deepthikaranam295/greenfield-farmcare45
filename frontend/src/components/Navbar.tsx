@@ -53,11 +53,25 @@ export default function Navbar() {
                 {l.label}
               </NavLink>
             ))}
+            <div className="flex items-center gap-2 ml-3">
+              <Link
+                to="/login"
+                className="px-4 py-2 rounded-md text-sm font-body font-semibold text-white border border-white/30 hover:bg-white/10 transition-colors whitespace-nowrap"
+              >
+                Login
+              </Link>
+              <Link
+                to="/signup"
+                className="px-4 py-2 rounded-md text-sm font-body font-semibold bg-gf-pale text-gf-dark hover:bg-white transition-colors whitespace-nowrap"
+              >
+                Sign Up
+              </Link>
+            </div>
             <a
               href="https://wa.me/919945100567?text=Hi%2C%20I%20want%20to%20know%20more%20about%20GreenField%20Farm%20Care"
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-3 btn-primary text-sm py-2 px-4"
+              className="ml-2 btn-primary text-sm py-2 px-4"
             >
               Free Site Visit
             </a>
@@ -92,6 +106,24 @@ export default function Navbar() {
               {l.label}
             </NavLink>
           ))}
+          {/* Auth buttons */}
+          <div className="mt-4 pt-4 border-t border-gf-mid/30 flex flex-col gap-2">
+            <Link
+              to="/login"
+              onClick={() => setOpen(false)}
+              className="block w-full px-4 py-3 rounded-lg text-sm font-body font-semibold text-center text-white border border-white/30 hover:bg-white/10 active:bg-white/20 transition-colors"
+            >
+              Login
+            </Link>
+            <Link
+              to="/signup"
+              onClick={() => setOpen(false)}
+              className="block w-full px-4 py-3 rounded-lg text-sm font-body font-semibold text-center bg-gf-pale text-gf-dark hover:bg-white active:bg-gf-pale/80 transition-colors"
+            >
+              Sign Up
+            </Link>
+          </div>
+
           <a
             href="https://wa.me/919945100567"
             target="_blank"

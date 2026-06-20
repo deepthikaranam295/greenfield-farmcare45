@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timezone, date, time
+from typing import Optional
 from sqlalchemy import String, Date, Time, DateTime, ForeignKey, Text, Boolean, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -27,6 +28,8 @@ class FieldReport(Base):
     status: Mapped[ReportStatus] = mapped_column(SAEnum(ReportStatus), default=ReportStatus.draft)
     issues_found: Mapped[str] = mapped_column(Text, nullable=True)
     next_visit_needed: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
@@ -44,6 +47,8 @@ class ReportPhoto(Base):
     s3_url: Mapped[str] = mapped_column(String(500), nullable=False)
     caption: Mapped[str] = mapped_column(String(255), nullable=True)
     taken_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     report: Mapped["FieldReport"] = relationship("FieldReport", back_populates="photos")

@@ -18,16 +18,16 @@ const trustCards = [
   },
   {
     icon: '📍',
-    title: 'Anantapur Specialists',
-    desc: 'We know the land, the climate and the local vendors in Anantapur. That local knowledge makes us faster and better.',
+    title: 'Local Expertise',
+    desc: 'We know the land, the climate and the local vendors in every region we operate. That local knowledge makes us faster and better.',
   },
 ]
 
 const serviceAreas = [
-  { area: 'Anantapur District', status: 'primary', label: 'Fully Operational' },
-  { area: 'Kurnool District', status: 'expanding', label: 'Expanding Soon' },
-  { area: 'Kadapa District', status: 'expanding', label: 'Expanding Soon' },
-  { area: 'Chittoor District', status: 'expanding', label: 'Expanding Soon' },
+  { area: 'South India', status: 'primary', label: 'Fully Operational' },
+  { area: 'West India', status: 'expanding', label: 'Expanding Soon' },
+  { area: 'North India', status: 'expanding', label: 'Expanding Soon' },
+  { area: 'East India', status: 'expanding', label: 'Expanding Soon' },
 ]
 
 export default function About() {
@@ -40,7 +40,7 @@ export default function About() {
             We Make Farm Ownership Simple, Secure and Stress-Free
           </h1>
           <p className="text-white/70 text-lg max-w-2xl mx-auto">
-            GreenField Farm Care is Anantapur's dedicated farm management company — built for
+            GreenField Farm Care is a dedicated farm management company — built for
             city-based farm owners who want their land productive and protected without being there.
           </p>
         </div>
@@ -60,12 +60,12 @@ export default function About() {
               <div className="space-y-4 text-gray-600 leading-relaxed">
                 <p>
                   GreenField Farm Care was founded to solve a problem that thousands of
-                  Anantapur farm owners face: they own land, but live and work in Hyderabad,
+                  farm owners face: they own land, but live and work in Hyderabad,
                   Bengaluru, Chennai or other cities. Their farms sit idle or poorly managed
                   because they cannot be there.
                 </p>
                 <p>
-                  We are an Anantapur-based team of farm managers, field staff and technical
+                  We are a dedicated team of farm managers, field staff and technical
                   specialists. We handle fencing, irrigation, plantation, camera monitoring and
                   ongoing maintenance — everything from the first site visit to monthly reports
                   delivered on your WhatsApp.
@@ -133,8 +133,8 @@ export default function About() {
           </div>
           <div className="bg-white rounded-2xl border border-gf-pale p-8 md:p-12 space-y-5 text-gray-600 leading-relaxed">
             <p>
-              Our founder grew up in Anantapur and spent years watching farm owners — both local
-              families and city-based professionals — struggle to manage their agricultural land.
+              Our founder spent years watching farm owners — both local families and
+              city-based professionals — struggle to manage their agricultural land.
               Vendors would over-charge, work would be done poorly, and owners would only find
               out months later during a rare visit.
             </p>
@@ -148,8 +148,8 @@ export default function About() {
               manage the vendors, do quality checks, and send you updates every step of the way.
             </p>
             <p>
-              We are currently focused on Anantapur district where our team, local knowledge and
-              vendor relationships are strongest. We are expanding to Kurnool, Kadapa and Chittoor
+              We are currently operational across South India where our team, local knowledge and
+              vendor relationships are strongest. We are expanding to more regions across India
               as our team grows.
             </p>
           </div>
@@ -163,8 +163,8 @@ export default function About() {
             Where We Operate
           </h2>
           <p className="text-white/70 mb-10 max-w-xl mx-auto">
-            Currently serving farms across Anantapur district, Andhra Pradesh.
-            Expanding across the Rayalaseema region.
+            Currently serving farms across South India.
+            Expanding to more regions as we grow.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
             {serviceAreas.map(area => (

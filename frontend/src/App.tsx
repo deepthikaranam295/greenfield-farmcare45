@@ -12,12 +12,16 @@ import Contact from './pages/Contact'
 
 // Auth + Dashboard (existing JSX — works because allowJs: true)
 import Login from './pages/Login'
+import Signup from './pages/Signup'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import DashboardLayout from './pages/dashboard/DashboardLayout'
 import Overview from './pages/dashboard/Overview'
 import Farms from './pages/dashboard/Farms'
 import FarmDetail from './pages/dashboard/FarmDetail'
 import Tasks from './pages/dashboard/Tasks'
 import Reports from './pages/dashboard/Reports'
+import Users from './pages/dashboard/Users'
 
 export default function App() {
   return (
@@ -34,6 +38,9 @@ export default function App() {
 
           {/* Auth */}
           <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Dashboard (protected) */}
           <Route
@@ -56,6 +63,14 @@ export default function App() {
               }
             />
             <Route path="reports" element={<Reports />} />
+            <Route
+              path="users"
+              element={
+                <ProtectedRoute roles={['admin']}>
+                  <Users />
+                </ProtectedRoute>
+              }
+            />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

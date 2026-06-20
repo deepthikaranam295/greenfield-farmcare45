@@ -16,6 +16,7 @@ import Farms from './pages/dashboard/Farms'
 import FarmDetail from './pages/dashboard/FarmDetail'
 import Tasks from './pages/dashboard/Tasks'
 import Reports from './pages/dashboard/Reports'
+import Users from './pages/dashboard/Users'
 
 export default function App() {
   return (
@@ -54,6 +55,14 @@ export default function App() {
               }
             />
             <Route path="reports" element={<Reports />} />
+            <Route
+              path="users"
+              element={
+                <ProtectedRoute roles={['admin']}>
+                  <Users />
+                </ProtectedRoute>
+              }
+            />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

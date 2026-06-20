@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, Float, DateTime, ForeignKey, Enum as SAEnum
+from typing import Optional
+from sqlalchemy import String, Float, Boolean, DateTime, ForeignKey, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
@@ -34,9 +35,12 @@ class Farm(Base):
     gps_lng: Mapped[float] = mapped_column(Float, nullable=True)
     status: Mapped[FarmStatus] = mapped_column(SAEnum(FarmStatus), default=FarmStatus.active)
     subscription_plan: Mapped[SubscriptionPlan] = mapped_column(SAEnum(SubscriptionPlan), default=SubscriptionPlan.none)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     customer: Mapped["User"] = relationship("User", back_populates="farms", foreign_keys=[customer_id])
     tasks: Mapped[list["Task"]] = relationship("Task", back_populates="farm")
     reports: Mapped[list["FieldReport"]] = relationship("FieldReport", back_populates="farm")
+    cameras: Mapped[list["FarmCamera"]] = relationship("FarmCamera", back_populates="farm")
