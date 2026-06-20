@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { getFarms, createFarm } from '../../api/farms'
+import { getUsers } from '../../api/users'
 import Badge from '../../components/dashboard/Badge'
 import Pagination from '../../components/dashboard/Pagination'
 
@@ -136,14 +137,23 @@ function AddFarmModal({ onClose, onCreated }) {
     customer_id: '', name: '', village: '', mandal: '',
     district: '', size_acres: '', subscription_plan: 'none',
   })
+  const [customers, setCustomers] = useState([])
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    getUsers(1, 100).then(res => {
+      const list = res.data || []
+      setCustomers(list.filter(u => u.role === 'customer' && u.is_active))
+    }).catch(() => {})
+  }, [])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const submit = async e => {
     e.preventDefault()
     setError('')
+    if (!form.customer_id) { setError('Please select a customer'); return }
     setSaving(true)
     try {
       await createFarm({
@@ -167,7 +177,14 @@ function AddFarmModal({ onClose, onCreated }) {
         </div>
         <form onSubmit={submit} className="px-6 py-5 space-y-4">
           {error && <p className="text-red-600 text-sm font-body bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
-          <Field label="Customer User ID *" value={form.customer_id} onChange={v => set('customer_id', v)} placeholder="UUID of the customer" required />
+          <div>
+            <label className="block text-xs font-body font-medium text-gray-600 mb-1">Customer *</label>
+            <select required value={form.customer_id} onChange={e => set('customer_id', e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid">
+              <option value="">-- Select customer --</option>
+              {customers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.email})</option>)}
+            </select>
+          </div>
           <Field label="Farm Name *" value={form.name} onChange={v => set('name', v)} placeholder="e.g. Venkat Farm A" required />
           <div className="grid grid-cols-2 gap-3">
             <Field label="Village" value={form.village} onChange={v => set('village', v)} placeholder="Village" />

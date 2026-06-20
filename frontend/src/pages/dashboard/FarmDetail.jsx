@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getFarm, getFarmTasks, getFarmReports, updateFarm } from '../../api/farms'
+import { createTask } from '../../api/tasks'
+import { getUsers } from '../../api/users'
 import { getCameras, createCamera, updateCamera, deleteCamera } from '../../api/cameras'
 import { useAuth } from '../../hooks/useAuth'
 import Badge from '../../components/dashboard/Badge'
@@ -29,6 +31,7 @@ export default function FarmDetail() {
   const [cameras, setCameras] = useState([])
   const [showAddCamera, setShowAddCamera] = useState(false)
   const [editCamera, setEditCamera] = useState(null)
+  const [showAddTask, setShowAddTask] = useState(false)
 
   useEffect(() => {
     getFarm(id)
@@ -114,9 +117,18 @@ export default function FarmDetail() {
 
       {/* Tasks */}
       {tab === 'tasks' && (
+        <div className="space-y-3">
+          {isAdmin && (
+            <div className="flex justify-end">
+              <button onClick={() => setShowAddTask(true)}
+                className="bg-gf-mid text-white font-heading font-semibold px-4 py-2 rounded-lg text-sm hover:bg-gf-light transition-colors">
+                + Add Task
+              </button>
+            </div>
+          )}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           {tasks.length === 0 ? (
-            <p className="text-center text-gray-400 text-sm py-12 font-body">No tasks for this farm.</p>
+            <p className="text-center text-gray-400 text-sm py-12 font-body">No tasks yet.{isAdmin ? ' Click "+ Add Task" to create one.' : ''}</p>
           ) : (
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-100">
@@ -142,6 +154,7 @@ export default function FarmDetail() {
           <div className="px-5 py-3 border-t border-gray-100">
             <Pagination page={taskPage} pages={taskPages} onPage={setTaskPage} />
           </div>
+        </div>
         </div>
       )}
 
@@ -252,6 +265,17 @@ export default function FarmDetail() {
           farm={farm}
           onClose={() => setShowEdit(false)}
           onSaved={updated => { setFarm(updated); setShowEdit(false) }}
+        />
+      )}
+
+      {showAddTask && (
+        <AddTaskModal
+          farmId={id}
+          onClose={() => setShowAddTask(false)}
+          onCreated={() => {
+            setShowAddTask(false)
+            getFarmTasks(id, taskPage).then(r => { setTasks(r.data || []); setTaskPages(r.pages || 1) })
+          }}
         />
       )}
 
@@ -381,6 +405,99 @@ function EditFarmModal({ farm, onClose, onSaved }) {
             <button type="submit" disabled={saving}
               className="flex-1 bg-gf-mid text-white font-heading font-semibold py-2 rounded-lg text-sm hover:bg-gf-light disabled:opacity-60 transition-colors">
               {saving ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+const TASK_TYPES = ['irrigation', 'soil_test', 'fertilization', 'pest_control', 'harvesting', 'inspection', 'other']
+
+function AddTaskModal({ farmId, onClose, onCreated }) {
+  const [form, setForm] = useState({ task_type: 'irrigation', assigned_to: '', scheduled_date: '', notes: '' })
+  const [workers, setWorkers] = useState([])
+  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    getUsers(1, 100).then(res => {
+      const list = res.data || []
+      setWorkers(list.filter(u => ['field_team', 'farm_worker'].includes(u.role) && u.is_active))
+    }).catch(() => {})
+  }, [])
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const submit = async e => {
+    e.preventDefault()
+    setError('')
+    setSaving(true)
+    try {
+      await createTask({
+        farm_id: farmId,
+        task_type: form.task_type,
+        assigned_to: form.assigned_to || null,
+        scheduled_date: form.scheduled_date || null,
+        notes: form.notes || null,
+      })
+      onCreated()
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to create task')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 className="font-heading font-bold text-gf-dark">Add Task</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+        </div>
+        <form onSubmit={submit} className="px-6 py-5 space-y-4">
+          {error && <p className="text-red-600 text-sm font-body bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+
+          <div>
+            <label className="block text-xs font-body font-medium text-gray-600 mb-1">Task Type *</label>
+            <select required value={form.task_type} onChange={e => set('task_type', e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid">
+              {TASK_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-body font-medium text-gray-600 mb-1">Assign To</label>
+            <select value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid">
+              <option value="">-- Unassigned --</option>
+              {workers.map(w => <option key={w.id} value={w.id}>{w.name} ({w.role.replace('_', ' ')})</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-body font-medium text-gray-600 mb-1">Scheduled Date</label>
+            <input type="date" value={form.scheduled_date} onChange={e => set('scheduled_date', e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid" />
+          </div>
+
+          <div>
+            <label className="block text-xs font-body font-medium text-gray-600 mb-1">Notes</label>
+            <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={3}
+              placeholder="Details about this task…"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid resize-none" />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose}
+              className="flex-1 border border-gray-300 text-gray-600 font-heading font-semibold py-2 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+              Cancel
+            </button>
+            <button type="submit" disabled={saving}
+              className="flex-1 bg-gf-mid text-white font-heading font-semibold py-2 rounded-lg text-sm hover:bg-gf-light disabled:opacity-60 transition-colors">
+              {saving ? 'Creating…' : 'Create Task'}
             </button>
           </div>
         </form>
