@@ -45,6 +45,31 @@ def health():
     return {"status": "ok", "app": settings.APP_NAME}
 
 
+@app.post("/api/seed-users", include_in_schema=False)
+def seed_users():
+    from sqlalchemy.orm import Session
+    from app.database import SessionLocal
+    from app.models.user import User, UserRole
+    from app.core.security import hash_password
+    import uuid
+    db: Session = SessionLocal()
+    try:
+        created = []
+        for name, email, password, role in [
+            ("Admin", "admin@greenfield.com", "Admin@2026", UserRole.admin),
+            ("Customer One", "customer@greenfield.com", "Customer@2026", UserRole.customer),
+            ("Field Team", "field@greenfield.com", "Field@2026", UserRole.field_team),
+        ]:
+            if not db.query(User).filter(User.email == email).first():
+                db.add(User(id=uuid.uuid4(), name=name, email=email,
+                            password_hash=hash_password(password), role=role, is_active=True))
+                created.append(email)
+        db.commit()
+        return {"created": created, "message": "Done"}
+    finally:
+        db.close()
+
+
 # Serve React frontend from dist folder (production / demo sharing)
 _DIST = Path(__file__).parent.parent.parent / "frontend" / "dist"
 if _DIST.exists():
