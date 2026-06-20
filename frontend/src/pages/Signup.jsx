@@ -5,24 +5,6 @@ import { useAuth } from '../hooks/useAuth'
 
 const ROLE_CARDS = [
   {
-    id: 'farm_owner',
-    label: 'Farm Owner',
-    icon: '🌾',
-    color: 'from-emerald-600 to-green-700',
-    border: 'border-emerald-500',
-    bg: 'bg-emerald-50',
-    desc: 'Own and manage farms, hire workers, track operations',
-  },
-  {
-    id: 'farm_worker',
-    label: 'Farm Worker',
-    icon: '👷',
-    color: 'from-blue-600 to-blue-700',
-    border: 'border-blue-500',
-    bg: 'bg-blue-50',
-    desc: 'Work on farms, complete tasks, submit field reports',
-  },
-  {
     id: 'customer',
     label: 'Customer',
     icon: '🛒',
@@ -42,8 +24,8 @@ export default function Signup() {
   const navigate = useNavigate()
   const { signIn } = useAuth()
 
-  const [step, setStep]   = useState(1) // 1 = role select, 2 = form
-  const [role, setRole]   = useState(null)
+  const [step, setStep]   = useState(2) // skip role select, go straight to form
+  const [role, setRole]   = useState(ROLE_CARDS[0])
   const [form, setForm]   = useState(EMPTY)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
