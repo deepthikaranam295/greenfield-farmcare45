@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 
 const ROLE_REDIRECT = {
   farm_owner:  '/dashboard',
-  farm_worker: '/dashboard/tasks',
+  farm_worker: '/dashboard',
   customer:    '/dashboard',
   admin:       '/dashboard',
   field_team:  '/dashboard/tasks',

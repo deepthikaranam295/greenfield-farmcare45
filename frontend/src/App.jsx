@@ -51,7 +51,7 @@ export default function App() {
             <Route
               path="tasks"
               element={
-                <ProtectedRoute roles={['admin', 'field_team']}>
+                <ProtectedRoute roles={['admin', 'field_team', 'farm_owner', 'farm_worker']}>
                   <Tasks />
                 </ProtectedRoute>
               }
