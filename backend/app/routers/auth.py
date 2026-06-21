@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
 @router.post("/register", response_model=APIResponse[UserOut])
 def register(payload: RegisterRequest, db: Session = Depends(get_db)):
-    logger.info("POST /api/auth/register: email=%s role=%s", payload.email, payload.role)
+    logger.info("POST /api/auth/register: email=%s", payload.email)
     user = auth_service.register_public(db, payload)
     logger.info("POST /api/auth/register: success user_id=%s", user.id)
     return APIResponse.ok(data=UserOut.model_validate(user), message="Account created successfully")
