@@ -4,6 +4,7 @@ export default function StatCard({ icon, label, value, sub, color = 'green', onC
     blue:   'bg-blue-50 text-blue-700',
     amber:  'bg-amber-50 text-amber-700',
     red:    'bg-red-50 text-red-700',
+    gray:   'bg-gray-100 text-gray-600',
   }
   const Tag = onClick ? 'button' : 'div'
   return (

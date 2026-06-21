@@ -6,18 +6,38 @@ from app.models.task import TaskType, TaskStatus, TaskPriority
 
 
 class TaskCreate(BaseModel):
+    task_name: Optional[str] = None
     farm_id: uuid.UUID
+    customer_id: Optional[uuid.UUID] = None
     assigned_to: Optional[uuid.UUID] = None
     task_type: TaskType
     priority: Optional[TaskPriority] = TaskPriority.medium
-    scheduled_date: Optional[date] = None
+    planned_start_date: Optional[date] = None
     planned_end_date: Optional[date] = None
     notes: Optional[str] = None
 
 
+class TaskUpdate(BaseModel):
+    task_name: Optional[str] = None
+    customer_id: Optional[uuid.UUID] = None
+    assigned_to: Optional[uuid.UUID] = None
+    task_type: Optional[TaskType] = None
+    priority: Optional[TaskPriority] = None
+    planned_start_date: Optional[date] = None
+    planned_end_date: Optional[date] = None
+    notes: Optional[str] = None
+    status: Optional[TaskStatus] = None
+
+
+class ServiceRequestCreate(BaseModel):
+    farm_id: uuid.UUID
+    task_type: TaskType
+    notes: Optional[str] = None
+    planned_start_date: Optional[date] = None
+
+
 class TaskStatusUpdate(BaseModel):
     status: TaskStatus
-    completed_date: Optional[date] = None
     actual_start_date: Optional[date] = None
     actual_end_date: Optional[date] = None
     notes: Optional[str] = None
@@ -25,17 +45,18 @@ class TaskStatusUpdate(BaseModel):
 
 class TaskOut(BaseModel):
     id: uuid.UUID
+    task_name: Optional[str] = None
     farm_id: uuid.UUID
+    customer_id: Optional[uuid.UUID] = None
     assigned_to: Optional[uuid.UUID] = None
     task_type: TaskType
     status: TaskStatus
     priority: Optional[TaskPriority] = None
-    scheduled_date: Optional[date] = None
+    planned_start_date: Optional[date] = None
     planned_end_date: Optional[date] = None
     actual_start_date: Optional[date] = None
     actual_end_date: Optional[date] = None
     delay_days: Optional[int] = None
-    completed_date: Optional[date] = None
     notes: Optional[str] = None
     created_at: datetime
     updated_at: datetime

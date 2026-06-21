@@ -44,7 +44,7 @@ def require_roles(*roles: UserRole):
 
 
 require_admin = require_roles(UserRole.admin)
-require_admin_or_field = require_roles(UserRole.admin, UserRole.field_team, UserRole.farm_worker)
-require_farm_owner = require_roles(UserRole.admin, UserRole.farm_owner)
-require_farm_worker = require_roles(UserRole.admin, UserRole.farm_worker, UserRole.field_team)
+require_admin_or_field = require_roles(UserRole.admin, UserRole.field_team)
+require_field = require_roles(UserRole.field_team)
+require_customer = require_roles(UserRole.customer)
 require_any = get_current_user

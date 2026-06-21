@@ -13,19 +13,12 @@ class UserCreate(BaseModel):
 
 
 class RegisterRequest(BaseModel):
-    """Public self-registration — supports all non-admin roles with profile data."""
+    """Public self-registration — customer role only."""
     name: str
     email: EmailStr
     phone: Optional[str] = None
     password: str
     confirm_password: str
-    role: UserRole = UserRole.customer
-    # Farm Owner fields
-    farm_name: Optional[str] = None
-    farm_location: Optional[str] = None
-    # Farm Worker fields
-    skills: Optional[str] = None
-    experience: Optional[str] = None
 
     @field_validator("password")
     @classmethod
@@ -35,16 +28,9 @@ class RegisterRequest(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def validate_fields(self):
+    def passwords_match(self):
         if self.password != self.confirm_password:
             raise ValueError("Passwords do not match")
-        if self.role not in (UserRole.farm_owner, UserRole.farm_worker, UserRole.customer):
-            raise ValueError("Public registration only allows farm_owner, farm_worker, or customer roles")
-        if self.role == UserRole.farm_owner:
-            if not self.farm_name:
-                raise ValueError("Farm name is required for Farm Owner registration")
-            if not self.farm_location:
-                raise ValueError("Farm location is required for Farm Owner registration")
         return self
 
 
@@ -64,10 +50,6 @@ class UserOut(BaseModel):
     password_set: bool = True
     last_login: Optional[datetime] = None
     created_at: datetime
-    farm_name: Optional[str] = None
-    farm_location: Optional[str] = None
-    skills: Optional[str] = None
-    experience: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

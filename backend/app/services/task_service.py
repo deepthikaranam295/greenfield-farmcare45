@@ -6,18 +6,44 @@ from sqlalchemy import case
 from fastapi import HTTPException
 from app.models.task import Task, TaskStatus, TaskPriority
 from app.models.user import User, UserRole
-from app.schemas.task import TaskCreate, TaskStatusUpdate
+from app.schemas.task import TaskCreate, TaskUpdate, TaskStatusUpdate, ServiceRequestCreate
 
 logger = logging.getLogger("app.services.task")
 
 
-def create_task(db: Session, payload: TaskCreate) -> Task:
+def create_task(db: Session, payload: TaskCreate, current_user: User) -> Task:
     logger.info("create_task: farm_id=%s type=%s", payload.farm_id, payload.task_type)
-    task = Task(**payload.model_dump())
+    data = payload.model_dump()
+    planned_start = data.pop("planned_start_date", None)
+    task = Task(**data)
+    task.planned_start_date = planned_start
+    task.scheduled_date = planned_start  # backwards compat column
+    task.status = TaskStatus.pending
     db.add(task)
     db.commit()
     db.refresh(task)
     logger.info("create_task: success task_id=%s", task.id)
+    return task
+
+
+def create_service_request(db: Session, payload: ServiceRequestCreate, current_user: User) -> Task:
+    """Customer submits a service request — creates task with status=requested."""
+    logger.info("create_service_request: user_id=%s farm_id=%s type=%s", current_user.id, payload.farm_id, payload.task_type)
+    task = Task(
+        farm_id=payload.farm_id,
+        customer_id=current_user.id,
+        task_type=payload.task_type,
+        task_name=payload.notes,
+        notes=payload.notes,
+        planned_start_date=payload.planned_start_date,
+        scheduled_date=payload.planned_start_date,
+        status=TaskStatus.requested,
+        priority=TaskPriority.medium,
+    )
+    db.add(task)
+    db.commit()
+    db.refresh(task)
+    logger.info("create_service_request: success task_id=%s", task.id)
     return task
 
 
@@ -30,13 +56,39 @@ def get_task(db: Session, task_id: uuid.UUID, current_user: User) -> Task:
     if current_user.role == UserRole.field_team and task.assigned_to != current_user.id:
         logger.warning("get_task: access denied task_id=%s user_id=%s", task_id, current_user.id)
         raise HTTPException(status_code=403, detail="Access denied")
+    if current_user.role == UserRole.customer and task.customer_id != current_user.id:
+        logger.warning("get_task: customer access denied task_id=%s user_id=%s", task_id, current_user.id)
+        raise HTTPException(status_code=403, detail="Access denied")
     logger.info("get_task: found task_id=%s", task.id)
+    return task
+
+
+def update_task(db: Session, task_id: uuid.UUID, payload: TaskUpdate, current_user: User) -> Task:
+    """Admin edits task — can reassign, change dates, cancel, etc."""
+    logger.info("update_task: task_id=%s user_id=%s", task_id, current_user.id)
+    task = db.query(Task).filter(Task.id == task_id, Task.is_deleted == False).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    updates = payload.model_dump(exclude_unset=True)
+    if "planned_start_date" in updates:
+        task.scheduled_date = updates["planned_start_date"]
+    for field, value in updates.items():
+        setattr(task, field, value)
+    db.commit()
+    db.refresh(task)
+    logger.info("update_task: success task_id=%s", task_id)
     return task
 
 
 def update_task_status(db: Session, task_id: uuid.UUID, payload: TaskStatusUpdate, current_user: User) -> Task:
     logger.info("update_task_status: task_id=%s user_id=%s status=%s", task_id, current_user.id, payload.status)
     task = get_task(db, task_id, current_user)
+
+    # Field team can only move to in_progress or completed
+    if current_user.role == UserRole.field_team and payload.status not in (
+        TaskStatus.pending, TaskStatus.in_progress, TaskStatus.completed
+    ):
+        raise HTTPException(status_code=403, detail="Field team can only set pending, in_progress, or completed")
 
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(task, field, value)
@@ -67,13 +119,15 @@ def get_my_tasks(
     sort_by: str = "planned_end_date",
     status_filter: str = None,
 ) -> tuple[list[Task], int]:
-    logger.info(
-        "get_my_tasks: user_id=%s role=%s skip=%d limit=%d sort_by=%s",
-        current_user.id, current_user.role, skip, limit, sort_by,
-    )
+    logger.info("get_my_tasks: user_id=%s role=%s", current_user.id, current_user.role)
     q = db.query(Task)
-    if current_user.role != UserRole.admin:
+
+    if current_user.role == UserRole.admin:
+        # Admin sees all tasks that are not 'requested' (those go to service_requests endpoint)
+        q = q.filter(Task.status != TaskStatus.requested)
+    elif current_user.role == UserRole.field_team:
         q = q.filter(Task.assigned_to == current_user.id)
+
     if not include_deleted:
         q = q.filter(Task.is_deleted == False)
     if status_filter:
@@ -89,13 +143,46 @@ def get_my_tasks(
         q = q.order_by(priority_order, Task.planned_end_date.asc().nulls_last())
     elif sort_by == "status":
         q = q.order_by(Task.status.asc(), Task.planned_end_date.asc().nulls_last())
-    elif sort_by == "scheduled_date":
-        q = q.order_by(Task.scheduled_date.asc().nulls_last())
+    elif sort_by == "planned_start_date":
+        q = q.order_by(Task.planned_start_date.asc().nulls_last())
     else:
         q = q.order_by(Task.planned_end_date.asc().nulls_last(), priority_order)
 
     total = q.count()
     logger.info("get_my_tasks: returning total=%d", total)
+    return q.offset(skip).limit(limit).all(), total
+
+
+def get_service_requests(
+    db: Session,
+    skip: int = 0,
+    limit: int = 20,
+) -> tuple[list[Task], int]:
+    """Admin retrieves pending customer service requests."""
+    q = db.query(Task).filter(
+        Task.status == TaskStatus.requested,
+        Task.is_deleted == False,
+    ).order_by(Task.created_at.desc())
+    total = q.count()
+    return q.offset(skip).limit(limit).all(), total
+
+
+def get_customer_tasks(
+    db: Session,
+    current_user: User,
+    skip: int = 0,
+    limit: int = 50,
+    status_filter: str = None,
+) -> tuple[list[Task], int]:
+    """Customer retrieves their service requests and tasks."""
+    q = db.query(Task).filter(
+        Task.customer_id == current_user.id,
+        Task.is_deleted == False,
+    )
+    if status_filter:
+        q = q.filter(Task.status == status_filter)
+    q = q.order_by(Task.created_at.desc())
+    total = q.count()
     return q.offset(skip).limit(limit).all(), total
 
 
@@ -106,21 +193,19 @@ def get_farm_tasks(
     limit: int = 20,
     include_deleted: bool = False,
 ) -> tuple[list[Task], int]:
-    logger.info(
-        "get_farm_tasks: farm_id=%s skip=%d limit=%d include_deleted=%s",
-        farm_id, skip, limit, include_deleted,
-    )
+    logger.info("get_farm_tasks: farm_id=%s skip=%d limit=%d", farm_id, skip, limit)
     q = db.query(Task).filter(Task.farm_id == farm_id)
     if not include_deleted:
         q = q.filter(Task.is_deleted == False)
     total = q.count()
-    logger.info("get_farm_tasks: returning total=%d", total)
     return q.offset(skip).limit(limit).all(), total
 
 
 def delete_task(db: Session, task_id: uuid.UUID, current_user: User) -> None:
     logger.info("delete_task: task_id=%s user_id=%s", task_id, current_user.id)
-    task = get_task(db, task_id, current_user)
+    task = db.query(Task).filter(Task.id == task_id, Task.is_deleted == False).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
     task.is_deleted = True
     task.deleted_at = datetime.now(timezone.utc)
     db.commit()

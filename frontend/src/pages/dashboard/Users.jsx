@@ -1,17 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getUsers, createUser, deactivateUser, activateUser } from '../../api/users'
 
-const ROLES = ['customer', 'field_team', 'farm_owner', 'farm_worker', 'admin']
+const ROLES = ['field_team', 'admin']
 
 const ROLE_BADGE = {
-  admin:       'bg-purple-100 text-purple-700',
-  field_team:  'bg-blue-100 text-blue-700',
-  farm_owner:  'bg-amber-100 text-amber-700',
-  farm_worker: 'bg-orange-100 text-orange-700',
-  customer:    'bg-green-100 text-green-700',
+  admin:      'bg-purple-100 text-purple-700',
+  field_team: 'bg-blue-100 text-blue-700',
+  customer:   'bg-green-100 text-green-700',
 }
 
-const EMPTY_FORM = { name: '', email: '', phone: '', role: 'customer' }
+const EMPTY_FORM = { name: '', email: '', phone: '', role: 'field_team' }
 
 export default function Users() {
   const [users, setUsers]     = useState([])

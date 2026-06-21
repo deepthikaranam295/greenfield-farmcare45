@@ -76,19 +76,14 @@ def activate_account(payload: ActivateAccountRequest, db: Session = Depends(get_
 
 
 def _user_to_out(user: User) -> UserOut:
-    data = {
-        "id": user.id,
-        "name": user.name,
-        "email": user.email,
-        "phone": user.phone,
-        "role": user.role,
-        "is_active": user.is_active,
-        "password_set": getattr(user, "password_set", True),
-        "last_login": getattr(user, "last_login", None),
-        "created_at": user.created_at,
-        "farm_name": getattr(user, "farm_name", None),
-        "farm_location": getattr(user, "farm_location", None),
-        "skills": getattr(user, "skills", None),
-        "experience": getattr(user, "experience", None),
-    }
-    return UserOut(**data)
+    return UserOut(
+        id=user.id,
+        name=user.name,
+        email=user.email,
+        phone=user.phone,
+        role=user.role,
+        is_active=user.is_active,
+        password_set=getattr(user, "password_set", True),
+        last_login=getattr(user, "last_login", None),
+        created_at=user.created_at,
+    )

@@ -11,8 +11,6 @@ import enum
 class UserRole(str, enum.Enum):
     admin = "admin"
     field_team = "field_team"
-    farm_owner = "farm_owner"
-    farm_worker = "farm_worker"
     customer = "customer"
 
 

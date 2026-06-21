@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from app.models.user import User, UserRole
-from app.models.profile import FarmOwnerProfile, WorkerProfile, PasswordResetToken
+from app.models.profile import PasswordResetToken
 from app.schemas.user import UserCreate, RegisterRequest, LoginRequest
 from app.core.security import hash_password, verify_password, create_access_token
 
@@ -80,8 +80,8 @@ def activate_account(db: Session, token: str, new_password: str) -> User:
 
 
 def register_public(db: Session, payload: RegisterRequest) -> User:
-    """Public self-registration — creates role-specific profile records."""
-    logger.info("register_public: attempt email=%s role=%s", payload.email, payload.role)
+    """Public self-registration — always creates a customer account."""
+    logger.info("register_public: attempt email=%s", payload.email)
     if db.query(User).filter(User.email == payload.email).first():
         logger.warning("register_public: duplicate email=%s", payload.email)
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
@@ -91,27 +91,12 @@ def register_public(db: Session, payload: RegisterRequest) -> User:
         email=payload.email,
         phone=payload.phone,
         password_hash=hash_password(payload.password),
-        role=payload.role,
+        role=UserRole.customer,
     )
     db.add(user)
-    db.flush()  # get user.id before commit
-
-    if payload.role == UserRole.farm_owner:
-        db.add(FarmOwnerProfile(
-            user_id=user.id,
-            farm_name=payload.farm_name,
-            farm_location=payload.farm_location,
-        ))
-    elif payload.role == UserRole.farm_worker:
-        db.add(WorkerProfile(
-            user_id=user.id,
-            skills=payload.skills or "",
-            experience=payload.experience or "",
-        ))
-
     db.commit()
     db.refresh(user)
-    logger.info("register_public: success user_id=%s role=%s", user.id, user.role)
+    logger.info("register_public: success user_id=%s", user.id)
     return user
 
 
@@ -147,17 +132,7 @@ def login_user(db: Session, payload: LoginRequest) -> dict:
 
 
 def _attach_profile(db: Session, user: User) -> None:
-    """Attach profile fields directly onto the user ORM object for schema serialization."""
-    if user.role == UserRole.farm_owner:
-        p = db.query(FarmOwnerProfile).filter(FarmOwnerProfile.user_id == user.id).first()
-        if p:
-            user.farm_name = p.farm_name
-            user.farm_location = p.farm_location
-    elif user.role == UserRole.farm_worker:
-        p = db.query(WorkerProfile).filter(WorkerProfile.user_id == user.id).first()
-        if p:
-            user.skills = p.skills
-            user.experience = p.experience
+    pass
 
 
 def forgot_password(db: Session, email: str) -> str | None:

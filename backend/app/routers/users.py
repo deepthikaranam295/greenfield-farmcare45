@@ -1,12 +1,12 @@
 import logging
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.user import UserCreate, UserOut, UserCreateResult
 from app.schemas.common import APIResponse, PaginatedResponse
 from app.services import auth_service
 from app.dependencies.auth import require_admin
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.utils.pagination import Pagination
 
 logger = logging.getLogger("app.routers.users")
@@ -38,6 +38,8 @@ def create_user(
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
+    if payload.role == UserRole.customer:
+        raise HTTPException(status_code=400, detail="Customers register themselves via /signup. Admin can only create admin or field_team users.")
     logger.info("POST /api/users: email=%s role=%s", payload.email, payload.role)
     user, raw_token = auth_service.create_user_with_activation(db, payload)
     base_url = str(request.base_url).rstrip("/")

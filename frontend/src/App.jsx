@@ -54,14 +54,7 @@ export default function App() {
             <Route index element={<Overview />} />
             <Route path="farms" element={<Farms />} />
             <Route path="farms/:id" element={<FarmDetail />} />
-            <Route
-              path="tasks"
-              element={
-                <ProtectedRoute roles={['admin', 'field_team', 'farm_owner', 'farm_worker']}>
-                  <Tasks />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="tasks" element={<Tasks />} />
             <Route path="reports" element={<Reports />} />
             <Route
               path="users"

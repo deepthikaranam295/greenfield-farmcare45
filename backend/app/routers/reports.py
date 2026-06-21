@@ -8,7 +8,7 @@ from app.database import get_db
 from app.schemas.report import ReportCreate, ReportOut, ReportPhotoOut
 from app.schemas.common import APIResponse, PaginatedResponse
 from app.services import report_service, farm_service
-from app.dependencies.auth import get_current_user, require_admin_or_field
+from app.dependencies.auth import get_current_user, require_admin_or_field, require_admin
 from app.models.user import User, UserRole
 from app.models.task import Task, TaskStatus
 from app.utils.pagination import Pagination

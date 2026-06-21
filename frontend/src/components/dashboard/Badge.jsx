@@ -1,6 +1,7 @@
 const colors = {
   active:      'bg-green-100 text-green-700',
   inactive:    'bg-gray-100 text-gray-500',
+  requested:   'bg-violet-100 text-violet-700',
   pending:     'bg-amber-100 text-amber-700',
   in_progress: 'bg-blue-100 text-blue-700',
   completed:   'bg-green-100 text-green-700',
