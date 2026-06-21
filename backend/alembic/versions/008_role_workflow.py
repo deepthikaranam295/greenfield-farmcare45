@@ -37,7 +37,9 @@ def upgrade() -> None:
 
     # Recreate userrole enum with only 3 values
     op.execute("CREATE TYPE userrole_v2 AS ENUM ('admin', 'field_team', 'customer')")
+    op.execute("ALTER TABLE users ALTER COLUMN role DROP DEFAULT")
     op.execute("ALTER TABLE users ALTER COLUMN role TYPE userrole_v2 USING role::text::userrole_v2")
+    op.execute("ALTER TABLE users ALTER COLUMN role SET DEFAULT 'customer'")
     op.execute("DROP TYPE userrole")
     op.execute("ALTER TYPE userrole_v2 RENAME TO userrole")
 
