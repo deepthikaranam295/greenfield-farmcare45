@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 import Layout from '../components/Layout'
 
 const whyCards = [
@@ -44,6 +45,7 @@ const services = [
 ]
 
 export default function Home() {
+  const { user } = useAuth()
   return (
     <Layout>
       {/* Hero */}
@@ -75,6 +77,18 @@ export default function Home() {
               <Link to="/services" className="btn-outline text-center text-base">
                 View Our Services
               </Link>
+            </div>
+            <div className="mt-8 pt-8 border-t border-white/20 flex items-center gap-4">
+              <span className="text-white/50 text-sm font-body">Already a customer?</span>
+              {user ? (
+                <Link to="/dashboard" className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-heading font-semibold text-sm px-5 py-2.5 rounded-xl border border-white/20 transition-colors">
+                  Go to Dashboard →
+                </Link>
+              ) : (
+                <Link to="/login" className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-heading font-semibold text-sm px-5 py-2.5 rounded-xl border border-white/20 transition-colors">
+                  Sign In →
+                </Link>
+              )}
             </div>
           </div>
         </div>
