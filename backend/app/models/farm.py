@@ -44,3 +44,4 @@ class Farm(Base):
     tasks: Mapped[list["Task"]] = relationship("Task", back_populates="farm")
     reports: Mapped[list["FieldReport"]] = relationship("FieldReport", back_populates="farm")
     cameras: Mapped[list["FarmCamera"]] = relationship("FarmCamera", back_populates="farm")
+    activities: Mapped[list["FarmActivity"]] = relationship("FarmActivity", back_populates="farm")

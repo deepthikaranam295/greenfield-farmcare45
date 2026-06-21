@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.logging import logger
 from app.middleware.logging import LoggingMiddleware
-from app.routers import auth, farms, tasks, reports, users, cameras
+from app.routers import auth, farms, tasks, reports, users, cameras, activities
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -32,6 +32,7 @@ app.include_router(farms.router)
 app.include_router(tasks.router)
 app.include_router(reports.router)
 app.include_router(cameras.router)
+app.include_router(activities.router)
 
 
 @app.exception_handler(Exception)
