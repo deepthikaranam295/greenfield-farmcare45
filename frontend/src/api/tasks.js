@@ -1,7 +1,10 @@
 import client from './client'
 
-export const getMyTasks = (page = 1, size = 20) =>
-  client.get('/api/tasks/my-tasks', { params: { page, size } }).then(r => r.data)
+export const getMyTasks = (page = 1, size = 20, sortBy = 'planned_end_date', statusFilter = null) => {
+  const params = { page, size, sort_by: sortBy }
+  if (statusFilter) params.status_filter = statusFilter
+  return client.get('/api/tasks/my-tasks', { params }).then(r => r.data)
+}
 
 export const getTask = (id) =>
   client.get(`/api/tasks/${id}`).then(r => r.data.data)

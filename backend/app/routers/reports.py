@@ -1,5 +1,7 @@
 import logging
 import uuid
+from datetime import date, timedelta
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -8,11 +10,53 @@ from app.schemas.common import APIResponse, PaginatedResponse
 from app.services import report_service, farm_service
 from app.dependencies.auth import get_current_user, require_admin_or_field
 from app.models.user import User, UserRole
+from app.models.task import Task, TaskStatus
 from app.utils.pagination import Pagination
 
 logger = logging.getLogger("app.routers.reports")
 
 router = APIRouter(prefix="/api/reports", tags=["Reports"])
+
+
+@router.get("/task-performance")
+def task_performance(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    farm_id: Optional[uuid.UUID] = Query(None),
+    user_id: Optional[uuid.UUID] = Query(None),
+):
+    logger.info("GET /api/reports/task-performance: user_id=%s farm_id=%s", current_user.id, farm_id)
+    today = date.today()
+    q = db.query(Task).filter(Task.is_deleted == False)
+    if farm_id:
+        q = q.filter(Task.farm_id == farm_id)
+    if user_id:
+        if current_user.role != UserRole.admin:
+            raise HTTPException(status_code=403, detail="Only admins can filter by user")
+        q = q.filter(Task.assigned_to == user_id)
+    elif current_user.role not in (UserRole.admin,):
+        q = q.filter(Task.assigned_to == current_user.id)
+
+    tasks = q.all()
+    completed = [t for t in tasks if t.status == TaskStatus.completed]
+    active = [t for t in tasks if t.status not in (TaskStatus.completed, TaskStatus.cancelled)]
+    delay_values = [t.delay_days for t in completed if t.delay_days is not None and t.delay_days > 0]
+
+    return {
+        "status": "success",
+        "data": {
+            "total": len(tasks),
+            "pending": sum(1 for t in tasks if t.status == TaskStatus.pending),
+            "in_progress": sum(1 for t in tasks if t.status == TaskStatus.in_progress),
+            "completed": len(completed),
+            "cancelled": sum(1 for t in tasks if t.status == TaskStatus.cancelled),
+            "completed_on_time": sum(1 for t in completed if t.delay_days is not None and t.delay_days <= 0),
+            "completed_late": sum(1 for t in completed if t.delay_days is not None and t.delay_days > 0),
+            "overdue": sum(1 for t in active if t.planned_end_date and t.planned_end_date < today),
+            "due_soon": sum(1 for t in active if t.planned_end_date and today <= t.planned_end_date <= today + timedelta(days=3)),
+            "avg_delay_days": round(sum(delay_values) / len(delay_values), 1) if delay_values else 0,
+        },
+    }
 
 
 @router.post("", response_model=APIResponse[ReportOut])

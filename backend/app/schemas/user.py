@@ -9,15 +9,7 @@ class UserCreate(BaseModel):
     name: str
     email: EmailStr
     phone: Optional[str] = None
-    password: str
     role: UserRole = UserRole.customer
-
-    @field_validator("password")
-    @classmethod
-    def password_min_length(cls, v):
-        if len(v) < 6:
-            raise ValueError("Password must be at least 6 characters")
-        return v
 
 
 class RegisterRequest(BaseModel):
@@ -69,6 +61,8 @@ class UserOut(BaseModel):
     phone: Optional[str] = None
     role: UserRole
     is_active: bool
+    password_set: bool = True
+    last_login: Optional[datetime] = None
     created_at: datetime
     farm_name: Optional[str] = None
     farm_location: Optional[str] = None
@@ -76,6 +70,11 @@ class UserOut(BaseModel):
     experience: Optional[str] = None
 
     model_config = {"from_attributes": True}
+
+
+class UserCreateResult(BaseModel):
+    user: UserOut
+    activation_link: str
 
 
 class LoginRequest(BaseModel):
@@ -119,3 +118,22 @@ class PasswordChangeRequest(BaseModel):
         if len(v) < 6:
             raise ValueError("Password must be at least 6 characters")
         return v
+
+
+class ActivateAccountRequest(BaseModel):
+    token: str
+    new_password: str
+    confirm_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def password_strength(cls, v):
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        return v
+
+    @model_validator(mode="after")
+    def passwords_match(self):
+        if self.new_password != self.confirm_password:
+            raise ValueError("Passwords do not match")
+        return self

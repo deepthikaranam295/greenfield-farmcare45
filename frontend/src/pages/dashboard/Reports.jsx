@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { getFarms } from '../../api/farms'
 import { getFarmReports, createReport, uploadPhoto } from '../../api/reports'
+import { getTaskPerformance } from '../../api/users'
 import Badge from '../../components/dashboard/Badge'
 import Pagination from '../../components/dashboard/Pagination'
 
 export default function Reports() {
   const { user } = useAuth()
   const isFieldOrAdmin = user.role !== 'customer'
+  const [activeTab, setActiveTab] = useState('field')
   const [farms, setFarms] = useState([])
   const [selectedFarm, setSelectedFarm] = useState('')
   const [reports, setReports] = useState([])
@@ -50,10 +52,9 @@ export default function Reports() {
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="font-heading font-bold text-2xl text-gf-dark">Field Reports</h1>
-          <p className="text-gray-500 text-sm font-body">{total} reports</p>
+          <h1 className="font-heading font-bold text-2xl text-gf-dark">Reports</h1>
         </div>
-        {isFieldOrAdmin && selectedFarm && (
+        {activeTab === 'field' && isFieldOrAdmin && selectedFarm && (
           <button
             onClick={() => setShowCreate(true)}
             className="bg-gf-mid text-white font-heading font-semibold px-4 py-2 rounded-lg text-sm hover:bg-gf-light transition-colors"
@@ -62,6 +63,26 @@ export default function Reports() {
           </button>
         )}
       </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+        <button
+          onClick={() => setActiveTab('field')}
+          className={`px-4 py-1.5 rounded-lg text-sm font-heading font-semibold transition-colors ${activeTab === 'field' ? 'bg-white text-gf-dark shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          Field Reports
+        </button>
+        <button
+          onClick={() => setActiveTab('performance')}
+          className={`px-4 py-1.5 rounded-lg text-sm font-heading font-semibold transition-colors ${activeTab === 'performance' ? 'bg-white text-gf-dark shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          Task Performance
+        </button>
+      </div>
+
+      {activeTab === 'performance' && <PerformanceReport farms={farms} />}
+
+      {activeTab === 'field' && <>
 
       {/* Farm selector */}
       {farms.length > 1 && (
@@ -161,6 +182,111 @@ export default function Reports() {
           onClose={() => setShowCreate(false)}
           onCreated={() => { setShowCreate(false); reload() }}
         />
+      )}
+
+      </>}
+    </div>
+  )
+}
+
+function PerformanceReport({ farms }) {
+  const [perf, setPerf] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [selectedFarm, setSelectedFarm] = useState('')
+
+  useEffect(() => {
+    setLoading(true)
+    const params = selectedFarm ? { farm_id: selectedFarm } : {}
+    getTaskPerformance(params).then(setPerf).catch(() => setPerf(null)).finally(() => setLoading(false))
+  }, [selectedFarm])
+
+  const stat = (label, value, color = 'gray') => {
+    const colors = {
+      green: 'bg-green-50 border-green-200 text-green-700',
+      red: 'bg-red-50 border-red-200 text-red-700',
+      amber: 'bg-amber-50 border-amber-200 text-amber-700',
+      blue: 'bg-blue-50 border-blue-200 text-blue-700',
+      gray: 'bg-gray-50 border-gray-200 text-gray-700',
+    }
+    return (
+      <div className={`border rounded-xl px-4 py-4 text-center ${colors[color]}`}>
+        <p className="text-2xl font-heading font-bold">{value ?? '—'}</p>
+        <p className="text-xs font-body mt-1">{label}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-5">
+      {farms.length > 1 && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setSelectedFarm('')}
+            className={`px-3 py-1.5 rounded-full text-xs font-body font-medium transition-colors ${!selectedFarm ? 'bg-gf-mid text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-gf-mid'}`}
+          >
+            All Farms
+          </button>
+          {farms.map(f => (
+            <button
+              key={f.id}
+              onClick={() => setSelectedFarm(f.id)}
+              className={`px-3 py-1.5 rounded-full text-xs font-body font-medium transition-colors ${selectedFarm === f.id ? 'bg-gf-mid text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-gf-mid'}`}
+            >
+              {f.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="py-16 text-center text-gray-400 font-body">Loading…</div>
+      ) : !perf ? (
+        <div className="py-16 text-center text-gray-400 font-body">No data available.</div>
+      ) : (
+        <div className="space-y-5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {stat('Total Tasks', perf.total)}
+            {stat('Pending', perf.pending, 'amber')}
+            {stat('In Progress', perf.in_progress, 'blue')}
+            {stat('Completed', perf.completed, 'green')}
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <h3 className="font-heading font-semibold text-gf-dark mb-4">Completion Performance</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {stat('Completed On Time', perf.completed_on_time, 'green')}
+              {stat('Completed Late', perf.completed_late, 'red')}
+              {stat('Avg Delay (days)', perf.avg_delay_days, perf.avg_delay_days > 0 ? 'red' : 'green')}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <h3 className="font-heading font-semibold text-gf-dark mb-4">Current Alerts</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {stat('Overdue Tasks', perf.overdue, perf.overdue > 0 ? 'red' : 'green')}
+              {stat('Due in 3 Days', perf.due_soon, perf.due_soon > 0 ? 'amber' : 'green')}
+            </div>
+            {perf.overdue === 0 && perf.due_soon === 0 && (
+              <p className="text-center text-green-600 font-body text-sm mt-3">✅ All tasks are on track!</p>
+            )}
+          </div>
+
+          {perf.total > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <h3 className="font-heading font-semibold text-gf-dark mb-3">Completion Rate</h3>
+              <div className="relative h-4 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gf-mid rounded-full transition-all"
+                  style={{ width: `${Math.round((perf.completed / perf.total) * 100)}%` }}
+                />
+              </div>
+              <div className="flex justify-between mt-1">
+                <p className="text-xs text-gray-500 font-body">{Math.round((perf.completed / perf.total) * 100)}% completed</p>
+                <p className="text-xs text-gray-500 font-body">{perf.total} tasks total</p>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   )

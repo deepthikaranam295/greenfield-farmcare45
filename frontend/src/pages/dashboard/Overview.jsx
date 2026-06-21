@@ -16,7 +16,7 @@ export default function Overview() {
   useEffect(() => {
     Promise.all([
       getFarms(1, 100).catch(() => ({ data: [] })),
-      user.role !== 'customer' ? getMyTasks(1, 50).catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+      user.role !== 'customer' ? getMyTasks(1, 100).catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
     ]).then(([f, t]) => {
       setFarms(f.data || [])
       setAllTasks(t.data || [])
@@ -28,6 +28,17 @@ export default function Overview() {
     in_progress: allTasks.filter(t => t.status === 'in_progress').length,
     completed:   allTasks.filter(t => t.status === 'completed').length,
   }
+
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const in3Days = new Date(today); in3Days.setDate(today.getDate() + 3)
+
+  const activeTasks = allTasks.filter(t => t.status !== 'completed' && t.status !== 'cancelled')
+  const overdueTasks = activeTasks.filter(t => t.planned_end_date && new Date(t.planned_end_date) < today)
+  const dueSoonTasks = activeTasks.filter(t => {
+    if (!t.planned_end_date) return false
+    const d = new Date(t.planned_end_date)
+    return d >= today && d <= in3Days
+  })
 
   const displayedTasks = statusFilter
     ? allTasks.filter(t => t.status === statusFilter)
@@ -48,11 +59,45 @@ export default function Overview() {
         <p className="text-gray-500 text-sm font-body mt-0.5">Here's what's happening on your farms today.</p>
       </div>
 
+      {/* Alerts */}
+      {user.role !== 'customer' && (overdueTasks.length > 0 || dueSoonTasks.length > 0) && (
+        <div className="space-y-2">
+          {overdueTasks.length > 0 && (
+            <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+              <span className="text-xl">🚨</span>
+              <div className="flex-1">
+                <p className="text-sm font-heading font-semibold text-red-700">
+                  {overdueTasks.length} overdue {overdueTasks.length === 1 ? 'task' : 'tasks'}
+                </p>
+                <p className="text-xs text-red-600 font-body">
+                  {overdueTasks.slice(0, 3).map(t => t.task_type?.replace(/_/g, ' ')).join(', ')}{overdueTasks.length > 3 ? ` +${overdueTasks.length - 3} more` : ''}
+                </p>
+              </div>
+              <Link to="/dashboard/tasks" onClick={() => {}} className="text-xs text-red-600 hover:underline font-body shrink-0">View →</Link>
+            </div>
+          )}
+          {dueSoonTasks.length > 0 && (
+            <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+              <span className="text-xl">⏰</span>
+              <div className="flex-1">
+                <p className="text-sm font-heading font-semibold text-amber-700">
+                  {dueSoonTasks.length} {dueSoonTasks.length === 1 ? 'task' : 'tasks'} due in next 3 days
+                </p>
+                <p className="text-xs text-amber-600 font-body">
+                  {dueSoonTasks.slice(0, 3).map(t => t.task_type?.replace(/_/g, ' ')).join(', ')}{dueSoonTasks.length > 3 ? ` +${dueSoonTasks.length - 3} more` : ''}
+                </p>
+              </div>
+              <Link to="/dashboard/tasks" className="text-xs text-amber-600 hover:underline font-body shrink-0">View →</Link>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon="🌾" label="Total Farms" value={farms.length} color="green" />
         <StatCard
-          icon="⏳" label="Pending Tasks" value={taskCounts.pending} color="amber"
+          icon="⏳" label="Pending" value={taskCounts.pending} color="amber"
           active={statusFilter === 'pending'}
           onClick={() => handleCardClick('pending')}
         />
@@ -105,7 +150,7 @@ export default function Overview() {
         )}
       </div>
 
-      {/* Tasks (field_team / admin) */}
+      {/* Tasks */}
       {user.role !== 'customer' && allTasks.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
@@ -132,17 +177,31 @@ export default function Overview() {
                 <tr>
                   <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Type</th>
                   <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Status</th>
-                  <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden sm:table-cell">Start Date</th>
+                  <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden sm:table-cell">Plan End</th>
+                  <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden md:table-cell">Delay</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {displayedTasks.map(task => (
-                  <tr key={task.id} className="hover:bg-gray-50/50">
-                    <td className="px-5 py-3 font-body font-medium text-gf-dark capitalize">{task.task_type?.replace('_', ' ')}</td>
-                    <td className="px-5 py-3"><Badge value={task.status} /></td>
-                    <td className="px-5 py-3 text-gray-500 font-body hidden sm:table-cell">{task.scheduled_date || '—'}</td>
-                  </tr>
-                ))}
+                {displayedTasks.map(task => {
+                  const isOverdue = task.status !== 'completed' && task.status !== 'cancelled'
+                    && task.planned_end_date && new Date(task.planned_end_date) < today
+                  return (
+                    <tr key={task.id} className={`hover:bg-gray-50/50 ${isOverdue ? 'bg-red-50/30' : ''}`}>
+                      <td className="px-5 py-3 font-body font-medium text-gf-dark capitalize">{task.task_type?.replace(/_/g, ' ')}</td>
+                      <td className="px-5 py-3"><Badge value={task.status} /></td>
+                      <td className="px-5 py-3 text-gray-500 font-body text-xs hidden sm:table-cell">{task.planned_end_date || task.scheduled_date || '—'}</td>
+                      <td className="px-5 py-3 hidden md:table-cell">
+                        {task.status === 'completed' && task.delay_days !== null && task.delay_days !== undefined ? (
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${task.delay_days <= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {task.delay_days <= 0 ? 'On time' : `+${task.delay_days}d`}
+                          </span>
+                        ) : isOverdue ? (
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">Overdue</span>
+                        ) : null}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           )}

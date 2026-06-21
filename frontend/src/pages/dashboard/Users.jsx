@@ -1,20 +1,17 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getUsers, createUser, deactivateUser, activateUser } from '../../api/users'
 
-const ROLES = ['customer', 'field_team', 'admin']
+const ROLES = ['customer', 'field_team', 'farm_owner', 'farm_worker', 'admin']
 
 const ROLE_BADGE = {
-  admin:      'bg-purple-100 text-purple-700',
-  field_team: 'bg-blue-100 text-blue-700',
-  customer:   'bg-green-100 text-green-700',
+  admin:       'bg-purple-100 text-purple-700',
+  field_team:  'bg-blue-100 text-blue-700',
+  farm_owner:  'bg-amber-100 text-amber-700',
+  farm_worker: 'bg-orange-100 text-orange-700',
+  customer:    'bg-green-100 text-green-700',
 }
 
 const EMPTY_FORM = { name: '', email: '', phone: '', role: 'customer' }
-
-function genPassword() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#!'
-  return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
-}
 
 export default function Users() {
   const [users, setUsers]     = useState([])
@@ -25,7 +22,8 @@ export default function Users() {
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError]   = useState('')
   const [successMsg, setSuccessMsg] = useState('')
-  const [createdPassword, setCreatedPassword] = useState('')
+  const [activationLink, setActivationLink] = useState('')
+  const [copied, setCopied] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -46,11 +44,11 @@ export default function Users() {
     e.preventDefault()
     setFormError('')
     setSubmitting(true)
-    const tempPass = genPassword()
     try {
-      await createUser({ ...form, password: tempPass })
-      setCreatedPassword(tempPass)
-      setSuccessMsg(`User "${form.name}" created. Share the temporary password below.`)
+      const result = await createUser({ name: form.name, email: form.email, phone: form.phone, role: form.role })
+      setActivationLink(result.activation_link || '')
+      setSuccessMsg(`User "${form.name}" created. Share the activation link below so they can set their password.`)
+      setCopied(false)
       setShowModal(false)
       setForm(EMPTY_FORM)
       load()
@@ -59,6 +57,12 @@ export default function Users() {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(activationLink)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   const handleToggle = async (user) => {
@@ -90,19 +94,24 @@ export default function Users() {
 
       {/* Success banner */}
       {successMsg && (
-        <div className="mb-4 bg-green-50 border border-green-200 rounded-lg px-4 py-3 font-body">
-          <p className="text-green-700 text-sm mb-2">{successMsg}</p>
-          {createdPassword && (
-            <div className="flex items-center gap-2 bg-white border border-green-200 rounded-lg px-3 py-2">
-              <span className="text-xs text-gray-500">Temp password:</span>
-              <code className="text-sm font-mono font-bold text-gf-dark flex-1">{createdPassword}</code>
-              <button
-                onClick={() => { navigator.clipboard.writeText(createdPassword); setSuccessMsg('Copied!') }}
-                className="text-xs text-gf-mid hover:underline"
-              >Copy</button>
+        <div className="mb-4 bg-green-50 border border-green-200 rounded-xl px-4 py-4 font-body">
+          <p className="text-green-700 text-sm font-semibold mb-3">✅ {successMsg}</p>
+          {activationLink && (
+            <div className="space-y-2">
+              <p className="text-xs text-gray-500">Activation link (valid for 72 hours):</p>
+              <div className="flex items-center gap-2 bg-white border border-green-200 rounded-lg px-3 py-2 flex-wrap">
+                <code className="text-xs font-mono text-gf-dark flex-1 break-all">{activationLink}</code>
+                <button
+                  onClick={copyLink}
+                  className={`shrink-0 text-xs font-semibold px-3 py-1 rounded-lg transition-colors ${copied ? 'bg-green-500 text-white' : 'bg-gf-mid text-white hover:bg-gf-dark'}`}
+                >
+                  {copied ? 'Copied!' : 'Copy Link'}
+                </button>
+              </div>
+              <p className="text-xs text-amber-600">Share this link with the user. They will set their own password when they open it.</p>
             </div>
           )}
-          <button onClick={() => { setSuccessMsg(''); setCreatedPassword('') }} className="mt-2 text-xs text-green-600 hover:underline block">Dismiss</button>
+          <button onClick={() => { setSuccessMsg(''); setActivationLink('') }} className="mt-3 text-xs text-green-600 hover:underline block">Dismiss</button>
         </div>
       )}
 
@@ -136,8 +145,14 @@ export default function Users() {
                     </span>
                   </td>
                   <td className="px-5 py-3">
-                    <span className={`inline-block text-xs font-heading font-semibold px-2.5 py-1 rounded-full ${u.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}`}>
-                      {u.is_active ? 'Active' : 'Inactive'}
+                    <span className={`inline-block text-xs font-heading font-semibold px-2.5 py-1 rounded-full ${
+                      !u.is_active && !u.password_set
+                        ? 'bg-amber-100 text-amber-700'
+                        : u.is_active
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-red-100 text-red-600'
+                    }`}>
+                      {!u.is_active && !u.password_set ? 'Pending Activation' : u.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   <td className="px-5 py-3 text-right">
@@ -225,9 +240,10 @@ export default function Users() {
                 </div>
 
                 <div className="col-span-2">
-                  <p className="text-xs text-gray-500 font-body bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                    A temporary password will be generated automatically. Share it with the user after creation.
-                  </p>
+                  <div className="text-xs text-gf-dark font-body bg-gf-pale/60 border border-gf-pale rounded-lg px-3 py-2 space-y-1">
+                    <p className="font-semibold">🔗 Activation link will be generated</p>
+                    <p className="text-gray-600">The user will receive an activation link to set their own password. No password is required from you.</p>
+                  </div>
                 </div>
               </div>
 

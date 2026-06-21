@@ -29,15 +29,22 @@ def my_tasks(
     current_user: User = Depends(require_admin_or_field),
     p: Pagination = Depends(),
     include_deleted: bool = Query(False),
+    sort_by: str = Query("planned_end_date"),
+    status_filter: str = Query(None),
 ):
     logger.info(
-        "GET /api/tasks/my-tasks: user_id=%s include_deleted=%s page=%d size=%d",
-        current_user.id, include_deleted, p.page, p.size,
+        "GET /api/tasks/my-tasks: user_id=%s role=%s page=%d sort_by=%s status_filter=%s",
+        current_user.id, current_user.role, p.page, sort_by, status_filter,
     )
     if include_deleted and current_user.role != UserRole.admin:
         logger.warning("GET /api/tasks/my-tasks: non-admin requested include_deleted user_id=%s", current_user.id)
         raise HTTPException(status_code=403, detail="Only admins can view deleted records")
-    tasks, total = task_service.get_my_tasks(db, current_user, p.skip, p.size, include_deleted=include_deleted)
+    tasks, total = task_service.get_my_tasks(
+        db, current_user, p.skip, p.size,
+        include_deleted=include_deleted,
+        sort_by=sort_by,
+        status_filter=status_filter,
+    )
     logger.info("GET /api/tasks/my-tasks: returning total=%d", total)
     return PaginatedResponse(
         data=[TaskOut.model_validate(t) for t in tasks],

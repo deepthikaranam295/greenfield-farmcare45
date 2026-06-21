@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.user import (
     UserCreate, RegisterRequest, LoginRequest, LoginResponse,
-    UserOut, ForgotPasswordRequest, ResetPasswordRequest,
+    UserOut, ForgotPasswordRequest, ResetPasswordRequest, ActivateAccountRequest,
 )
 from app.schemas.common import APIResponse
 from app.services import auth_service
@@ -68,6 +68,13 @@ def me(current_user: User = Depends(get_current_user), db: Session = Depends(get
     return APIResponse.ok(data=_user_to_out(current_user))
 
 
+@router.post("/activate", response_model=APIResponse)
+def activate_account(payload: ActivateAccountRequest, db: Session = Depends(get_db)):
+    logger.info("POST /api/auth/activate")
+    auth_service.activate_account(db, payload.token, payload.new_password)
+    return APIResponse.ok(message="Account activated successfully. You can now log in.")
+
+
 def _user_to_out(user: User) -> UserOut:
     data = {
         "id": user.id,
@@ -76,6 +83,8 @@ def _user_to_out(user: User) -> UserOut:
         "phone": user.phone,
         "role": user.role,
         "is_active": user.is_active,
+        "password_set": getattr(user, "password_set", True),
+        "last_login": getattr(user, "last_login", None),
         "created_at": user.created_at,
         "farm_name": getattr(user, "farm_name", None),
         "farm_location": getattr(user, "farm_location", None),

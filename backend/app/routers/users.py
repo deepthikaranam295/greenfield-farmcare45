@@ -1,8 +1,8 @@
 import logging
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.schemas.user import UserCreate, UserOut
+from app.schemas.user import UserCreate, UserOut, UserCreateResult
 from app.schemas.common import APIResponse, PaginatedResponse
 from app.services import auth_service
 from app.dependencies.auth import require_admin
@@ -31,16 +31,22 @@ def list_users(
     )
 
 
-@router.post("", response_model=APIResponse[UserOut])
+@router.post("", response_model=APIResponse[UserCreateResult])
 def create_user(
     payload: UserCreate,
+    request: Request,
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
     logger.info("POST /api/users: email=%s role=%s", payload.email, payload.role)
-    user = auth_service.register_user(db, payload)
+    user, raw_token = auth_service.create_user_with_activation(db, payload)
+    base_url = str(request.base_url).rstrip("/")
+    activation_link = f"{base_url}/activate?token={raw_token}"
     logger.info("POST /api/users: success user_id=%s", user.id)
-    return APIResponse.ok(data=UserOut.model_validate(user), message="User created")
+    return APIResponse.ok(
+        data=UserCreateResult(user=UserOut.model_validate(user), activation_link=activation_link),
+        message="User created. Share the activation link with them.",
+    )
 
 
 @router.patch("/{user_id}/deactivate", response_model=APIResponse[UserOut])

@@ -16,22 +16,66 @@ def _hash_token(raw: str) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
-def register_user(db: Session, payload: UserCreate) -> User:
-    logger.info("register_user: attempt email=%s", payload.email)
+def create_user_with_activation(db: Session, payload: UserCreate) -> tuple:
+    """Admin creates user without password — returns (user, raw_activation_token)."""
+    logger.info("create_user_with_activation: email=%s role=%s", payload.email, payload.role)
     if db.query(User).filter(User.email == payload.email).first():
-        logger.warning("register_user: duplicate email=%s", payload.email)
+        logger.warning("create_user_with_activation: duplicate email=%s", payload.email)
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+
+    placeholder_hash = hash_password(secrets.token_urlsafe(32))
     user = User(
         name=payload.name,
         email=payload.email,
         phone=payload.phone,
-        password_hash=hash_password(payload.password),
+        password_hash=placeholder_hash,
         role=payload.role,
+        is_active=False,
+        password_set=False,
     )
     db.add(user)
+    db.flush()
+
+    raw_token = secrets.token_urlsafe(32)
+    db.add(PasswordResetToken(
+        user_id=user.id,
+        token_hash=_hash_token(raw_token),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=72),
+    ))
     db.commit()
     db.refresh(user)
-    logger.info("register_user: success user_id=%s", user.id)
+    logger.info("create_user_with_activation: success user_id=%s", user.id)
+    return user, raw_token
+
+
+def activate_account(db: Session, token: str, new_password: str) -> User:
+    """Activate a pending user account and set their password."""
+    logger.info("activate_account: attempt")
+    token_hash = _hash_token(token)
+    record = db.query(PasswordResetToken).filter(
+        PasswordResetToken.token_hash == token_hash,
+        PasswordResetToken.used_at == None,
+    ).first()
+
+    if not record:
+        logger.warning("activate_account: invalid token")
+        raise HTTPException(status_code=400, detail="Invalid or expired activation link")
+
+    if record.expires_at < datetime.now(timezone.utc):
+        logger.warning("activate_account: expired token")
+        raise HTTPException(status_code=400, detail="Activation link has expired. Please contact your administrator.")
+
+    user = db.query(User).filter(User.id == record.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.password_hash = hash_password(new_password)
+    user.is_active = True
+    user.password_set = True
+    record.used_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(user)
+    logger.info("activate_account: success user_id=%s", user.id)
     return user
 
 
@@ -75,17 +119,29 @@ def login_user(db: Session, payload: LoginRequest) -> dict:
     logger.info("login_user: attempt email=%s", payload.email)
     user = db.query(User).filter(
         User.email == payload.email,
-        User.is_active == True,
         User.is_deleted == False,
     ).first()
-    if not user or not verify_password(payload.password, user.password_hash):
-        logger.warning("login_user: invalid credentials email=%s", payload.email)
+
+    if not user:
+        logger.warning("login_user: user not found email=%s", payload.email)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
+    if not user.is_active:
+        logger.warning("login_user: account not activated user_id=%s", user.id)
+        raise HTTPException(
+            status_code=403,
+            detail="Your account is not yet activated. Please use the activation link provided by your administrator.",
+        )
+
+    if not verify_password(payload.password, user.password_hash):
+        logger.warning("login_user: wrong password user_id=%s", user.id)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
+    user.last_login = datetime.now(timezone.utc)
+    db.commit()
+
     token = create_access_token({"sub": str(user.id), "role": user.role.value})
-
-    # Attach profile fields to user object for serialization
     _attach_profile(db, user)
-
     logger.info("login_user: success user_id=%s", user.id)
     return {"access_token": token, "token_type": "bearer", "user": user}
 

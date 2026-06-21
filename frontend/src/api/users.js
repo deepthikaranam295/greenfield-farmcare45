@@ -6,6 +6,9 @@ export const getUsers = (page = 1, size = 20) =>
 export const createUser = (payload) =>
   client.post('/api/users', payload).then(r => r.data.data)
 
+export const getTaskPerformance = (params = {}) =>
+  client.get('/api/reports/task-performance', { params }).then(r => r.data.data)
+
 export const deactivateUser = (id) =>
   client.patch(`/api/users/${id}/deactivate`).then(r => r.data.data)
 
