@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
-import { getMyTasks, updateTaskStatus } from '../../api/tasks'
+import { getMyTasks, updateTaskStatus, createTask } from '../../api/tasks'
 import { getFarms } from '../../api/farms'
-import { createTask } from '../../api/tasks'
+import { getUsers } from '../../api/users'
 import Badge from '../../components/dashboard/Badge'
 import Pagination from '../../components/dashboard/Pagination'
 
@@ -71,7 +71,8 @@ export default function Tasks() {
                   <tr>
                     <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Task Type</th>
                     <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Status</th>
-                    <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden sm:table-cell">Scheduled</th>
+                    <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden sm:table-cell">Start Date</th>
+                    <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden lg:table-cell">End Date</th>
                     <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden md:table-cell">Notes</th>
                     {!isAdmin && <th className="px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Action</th>}
                   </tr>
@@ -84,6 +85,7 @@ export default function Tasks() {
                       </td>
                       <td className="px-5 py-3"><Badge value={task.status} /></td>
                       <td className="px-5 py-3 text-gray-500 font-body hidden sm:table-cell">{task.scheduled_date || '—'}</td>
+                      <td className="px-5 py-3 text-gray-500 font-body hidden lg:table-cell">{task.planned_end_date || '—'}</td>
                       <td className="px-5 py-3 text-gray-500 font-body text-xs hidden md:table-cell">{task.notes || '—'}</td>
                       {!isAdmin && (
                         <td className="px-5 py-3">
@@ -120,12 +122,17 @@ export default function Tasks() {
 
 function CreateTaskModal({ onClose, onCreated }) {
   const [farms, setFarms] = useState([])
-  const [form, setForm] = useState({ farm_id: '', assigned_to: '', task_type: 'inspection', scheduled_date: '', notes: '' })
+  const [workers, setWorkers] = useState([])
+  const [form, setForm] = useState({ farm_id: '', assigned_to: '', task_type: 'inspection', scheduled_date: '', planned_end_date: '', notes: '' })
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     getFarms(1, 100).then(r => setFarms(r.data || []))
+    getUsers(1, 100).then(res => {
+      const list = res.data || []
+      setWorkers(list.filter(u => ['field_team', 'farm_worker'].includes(u.role) && u.is_active))
+    }).catch(() => {})
   }, [])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -140,6 +147,7 @@ function CreateTaskModal({ onClose, onCreated }) {
         assigned_to: form.assigned_to || null,
         task_type: form.task_type,
         scheduled_date: form.scheduled_date || null,
+        planned_end_date: form.planned_end_date || null,
         notes: form.notes || null,
       })
       onCreated()
@@ -173,12 +181,21 @@ function CreateTaskModal({ onClose, onCreated }) {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-body font-medium text-gray-600 mb-1">Assign To (User UUID)</label>
-            <input type="text" value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)} placeholder="Leave blank to unassign" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid" />
+            <label className="block text-xs font-body font-medium text-gray-600 mb-1">Assign To</label>
+            <select value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid">
+              <option value="">-- Unassigned --</option>
+              {workers.map(w => <option key={w.id} value={w.id}>{w.name} ({w.role.replace('_', ' ')})</option>)}
+            </select>
           </div>
-          <div>
-            <label className="block text-xs font-body font-medium text-gray-600 mb-1">Scheduled Date</label>
-            <input type="date" value={form.scheduled_date} onChange={e => set('scheduled_date', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid" />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-body font-medium text-gray-600 mb-1">Planned Start Date</label>
+              <input type="date" value={form.scheduled_date} onChange={e => set('scheduled_date', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid" />
+            </div>
+            <div>
+              <label className="block text-xs font-body font-medium text-gray-600 mb-1">Planned End Date</label>
+              <input type="date" value={form.planned_end_date} onChange={e => set('planned_end_date', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid" />
+            </div>
           </div>
           <div>
             <label className="block text-xs font-body font-medium text-gray-600 mb-1">Notes</label>

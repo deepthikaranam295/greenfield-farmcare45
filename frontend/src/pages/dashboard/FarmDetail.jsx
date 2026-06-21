@@ -135,7 +135,8 @@ export default function FarmDetail() {
                 <tr>
                   <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Type</th>
                   <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Status</th>
-                  <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden sm:table-cell">Scheduled</th>
+                  <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden sm:table-cell">Start Date</th>
+                  <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden lg:table-cell">End Date</th>
                   <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden md:table-cell">Notes</th>
                 </tr>
               </thead>
@@ -145,6 +146,7 @@ export default function FarmDetail() {
                     <td className="px-5 py-3 font-body font-medium text-gf-dark capitalize">{t.task_type?.replace('_', ' ')}</td>
                     <td className="px-5 py-3"><Badge value={t.status} /></td>
                     <td className="px-5 py-3 text-gray-500 font-body hidden sm:table-cell">{t.scheduled_date || '—'}</td>
+                    <td className="px-5 py-3 text-gray-500 font-body hidden lg:table-cell">{t.planned_end_date || '—'}</td>
                     <td className="px-5 py-3 text-gray-500 font-body text-xs hidden md:table-cell">{t.notes || '—'}</td>
                   </tr>
                 ))}
@@ -416,7 +418,7 @@ function EditFarmModal({ farm, onClose, onSaved }) {
 const TASK_TYPES = ['irrigation', 'soil_test', 'fertilization', 'pest_control', 'harvesting', 'inspection', 'other']
 
 function AddTaskModal({ farmId, onClose, onCreated }) {
-  const [form, setForm] = useState({ task_type: 'irrigation', assigned_to: '', scheduled_date: '', notes: '' })
+  const [form, setForm] = useState({ task_type: 'irrigation', assigned_to: '', scheduled_date: '', planned_end_date: '', notes: '' })
   const [workers, setWorkers] = useState([])
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -440,6 +442,7 @@ function AddTaskModal({ farmId, onClose, onCreated }) {
         task_type: form.task_type,
         assigned_to: form.assigned_to || null,
         scheduled_date: form.scheduled_date || null,
+        planned_end_date: form.planned_end_date || null,
         notes: form.notes || null,
       })
       onCreated()
@@ -477,10 +480,17 @@ function AddTaskModal({ farmId, onClose, onCreated }) {
             </select>
           </div>
 
-          <div>
-            <label className="block text-xs font-body font-medium text-gray-600 mb-1">Scheduled Date</label>
-            <input type="date" value={form.scheduled_date} onChange={e => set('scheduled_date', e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid" />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-body font-medium text-gray-600 mb-1">Planned Start Date</label>
+              <input type="date" value={form.scheduled_date} onChange={e => set('scheduled_date', e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid" />
+            </div>
+            <div>
+              <label className="block text-xs font-body font-medium text-gray-600 mb-1">Planned End Date</label>
+              <input type="date" value={form.planned_end_date} onChange={e => set('planned_end_date', e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid" />
+            </div>
           </div>
 
           <div>

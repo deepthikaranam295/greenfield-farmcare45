@@ -7,7 +7,7 @@ const ROLE_CARDS = [
   {
     id: 'customer',
     label: 'Customer',
-    icon: '🛒',
+    icon: '🌱',
     color: 'from-violet-600 to-purple-700',
     border: 'border-violet-500',
     bg: 'bg-violet-50',

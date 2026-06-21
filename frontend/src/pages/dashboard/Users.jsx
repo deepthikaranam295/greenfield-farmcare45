@@ -9,7 +9,12 @@ const ROLE_BADGE = {
   customer:   'bg-green-100 text-green-700',
 }
 
-const EMPTY_FORM = { name: '', email: '', phone: '', password: '', role: 'customer' }
+const EMPTY_FORM = { name: '', email: '', phone: '', role: 'customer' }
+
+function genPassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#!'
+  return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+}
 
 export default function Users() {
   const [users, setUsers]     = useState([])
@@ -20,6 +25,7 @@ export default function Users() {
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError]   = useState('')
   const [successMsg, setSuccessMsg] = useState('')
+  const [createdPassword, setCreatedPassword] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -40,13 +46,14 @@ export default function Users() {
     e.preventDefault()
     setFormError('')
     setSubmitting(true)
+    const tempPass = genPassword()
     try {
-      await createUser(form)
-      setSuccessMsg(`User "${form.name}" created successfully.`)
+      await createUser({ ...form, password: tempPass })
+      setCreatedPassword(tempPass)
+      setSuccessMsg(`User "${form.name}" created. Share the temporary password below.`)
       setShowModal(false)
       setForm(EMPTY_FORM)
       load()
-      setTimeout(() => setSuccessMsg(''), 4000)
     } catch (err) {
       setFormError(err.response?.data?.detail || 'Failed to create user.')
     } finally {
@@ -83,8 +90,19 @@ export default function Users() {
 
       {/* Success banner */}
       {successMsg && (
-        <div className="mb-4 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-lg font-body">
-          {successMsg}
+        <div className="mb-4 bg-green-50 border border-green-200 rounded-lg px-4 py-3 font-body">
+          <p className="text-green-700 text-sm mb-2">{successMsg}</p>
+          {createdPassword && (
+            <div className="flex items-center gap-2 bg-white border border-green-200 rounded-lg px-3 py-2">
+              <span className="text-xs text-gray-500">Temp password:</span>
+              <code className="text-sm font-mono font-bold text-gf-dark flex-1">{createdPassword}</code>
+              <button
+                onClick={() => { navigator.clipboard.writeText(createdPassword); setSuccessMsg('Copied!') }}
+                className="text-xs text-gf-mid hover:underline"
+              >Copy</button>
+            </div>
+          )}
+          <button onClick={() => { setSuccessMsg(''); setCreatedPassword('') }} className="mt-2 text-xs text-green-600 hover:underline block">Dismiss</button>
         </div>
       )}
 
@@ -207,16 +225,9 @@ export default function Users() {
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-xs font-body font-semibold text-gray-600 mb-1">Password *</label>
-                  <input
-                    required
-                    type="password"
-                    minLength={6}
-                    value={form.password}
-                    onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                    placeholder="Min 6 characters"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid"
-                  />
+                  <p className="text-xs text-gray-500 font-body bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                    A temporary password will be generated automatically. Share it with the user after creation.
+                  </p>
                 </div>
               </div>
 

@@ -9,23 +9,32 @@ import Badge from '../../components/dashboard/Badge'
 export default function Overview() {
   const { user } = useAuth()
   const [farms, setFarms] = useState([])
-  const [tasks, setTasks] = useState([])
+  const [allTasks, setAllTasks] = useState([])
   const [loading, setLoading] = useState(true)
+  const [statusFilter, setStatusFilter] = useState(null)
 
   useEffect(() => {
     Promise.all([
-      getFarms(1, 5).catch(() => ({ data: [] })),
-      user.role !== 'customer' ? getMyTasks(1, 5).catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+      getFarms(1, 100).catch(() => ({ data: [] })),
+      user.role !== 'customer' ? getMyTasks(1, 50).catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
     ]).then(([f, t]) => {
       setFarms(f.data || [])
-      setTasks(t.data || [])
+      setAllTasks(t.data || [])
     }).finally(() => setLoading(false))
   }, [user.role])
 
   const taskCounts = {
-    pending: tasks.filter(t => t.status === 'pending').length,
-    in_progress: tasks.filter(t => t.status === 'in_progress').length,
-    completed: tasks.filter(t => t.status === 'completed').length,
+    pending:     allTasks.filter(t => t.status === 'pending').length,
+    in_progress: allTasks.filter(t => t.status === 'in_progress').length,
+    completed:   allTasks.filter(t => t.status === 'completed').length,
+  }
+
+  const displayedTasks = statusFilter
+    ? allTasks.filter(t => t.status === statusFilter)
+    : allTasks.slice(0, 5)
+
+  const handleCardClick = (status) => {
+    setStatusFilter(prev => prev === status ? null : status)
   }
 
   if (loading) return <div className="flex items-center justify-center h-64 text-gray-400 font-body">Loading…</div>
@@ -42,9 +51,21 @@ export default function Overview() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon="🌾" label="Total Farms" value={farms.length} color="green" />
-        <StatCard icon="⏳" label="Pending Tasks" value={taskCounts.pending} color="amber" />
-        <StatCard icon="🔄" label="In Progress" value={taskCounts.in_progress} color="blue" />
-        <StatCard icon="✅" label="Completed" value={taskCounts.completed} color="green" />
+        <StatCard
+          icon="⏳" label="Pending Tasks" value={taskCounts.pending} color="amber"
+          active={statusFilter === 'pending'}
+          onClick={() => handleCardClick('pending')}
+        />
+        <StatCard
+          icon="🔄" label="In Progress" value={taskCounts.in_progress} color="blue"
+          active={statusFilter === 'in_progress'}
+          onClick={() => handleCardClick('in_progress')}
+        />
+        <StatCard
+          icon="✅" label="Completed" value={taskCounts.completed} color="green"
+          active={statusFilter === 'completed'}
+          onClick={() => handleCardClick('completed')}
+        />
       </div>
 
       {/* Recent Farms */}
@@ -84,31 +105,47 @@ export default function Overview() {
         )}
       </div>
 
-      {/* Recent Tasks (field_team / admin) */}
-      {user.role !== 'customer' && tasks.length > 0 && (
+      {/* Tasks (field_team / admin) */}
+      {user.role !== 'customer' && allTasks.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-            <h2 className="font-heading font-semibold text-gf-dark">My Recent Tasks</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="font-heading font-semibold text-gf-dark">
+                {statusFilter ? `${statusFilter.replace('_', ' ')} Tasks` : 'My Recent Tasks'}
+              </h2>
+              {statusFilter && (
+                <button
+                  onClick={() => setStatusFilter(null)}
+                  className="text-xs text-gray-400 hover:text-gray-600 font-body border border-gray-200 rounded-full px-2 py-0.5"
+                >
+                  × Clear
+                </button>
+              )}
+            </div>
             <Link to="/dashboard/tasks" className="text-xs text-gf-mid hover:underline font-body">View all →</Link>
           </div>
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Type</th>
-                <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Status</th>
-                <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden sm:table-cell">Scheduled</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {tasks.map(task => (
-                <tr key={task.id} className="hover:bg-gray-50/50">
-                  <td className="px-5 py-3 font-body font-medium text-gf-dark capitalize">{task.task_type?.replace('_', ' ')}</td>
-                  <td className="px-5 py-3"><Badge value={task.status} /></td>
-                  <td className="px-5 py-3 text-gray-500 font-body hidden sm:table-cell">{task.scheduled_date || '—'}</td>
+          {displayedTasks.length === 0 ? (
+            <p className="text-center text-gray-400 text-sm py-8 font-body">No {statusFilter?.replace('_', ' ')} tasks.</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Type</th>
+                  <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Status</th>
+                  <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden sm:table-cell">Start Date</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {displayedTasks.map(task => (
+                  <tr key={task.id} className="hover:bg-gray-50/50">
+                    <td className="px-5 py-3 font-body font-medium text-gf-dark capitalize">{task.task_type?.replace('_', ' ')}</td>
+                    <td className="px-5 py-3"><Badge value={task.status} /></td>
+                    <td className="px-5 py-3 text-gray-500 font-body hidden sm:table-cell">{task.scheduled_date || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
     </div>

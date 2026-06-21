@@ -10,6 +10,7 @@ class TaskCreate(BaseModel):
     assigned_to: Optional[uuid.UUID] = None
     task_type: TaskType
     scheduled_date: Optional[date] = None
+    planned_end_date: Optional[date] = None
     notes: Optional[str] = None
 
 
@@ -26,6 +27,7 @@ class TaskOut(BaseModel):
     task_type: TaskType
     status: TaskStatus
     scheduled_date: Optional[date] = None
+    planned_end_date: Optional[date] = None
     completed_date: Optional[date] = None
     notes: Optional[str] = None
     created_at: datetime

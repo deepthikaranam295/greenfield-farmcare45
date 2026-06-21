@@ -34,6 +34,7 @@ class Task(Base):
     task_type: Mapped[TaskType] = mapped_column(SAEnum(TaskType), nullable=False)
     status: Mapped[TaskStatus] = mapped_column(SAEnum(TaskStatus), default=TaskStatus.pending)
     scheduled_date: Mapped[date] = mapped_column(Date, nullable=True)
+    planned_end_date: Mapped[date] = mapped_column(Date, nullable=True)
     completed_date: Mapped[date] = mapped_column(Date, nullable=True)
     notes: Mapped[str] = mapped_column(Text, nullable=True)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
