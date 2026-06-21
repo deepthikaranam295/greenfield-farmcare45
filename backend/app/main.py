@@ -51,9 +51,15 @@ _DIST = Path(__file__).parent.parent.parent / "frontend" / "dist"
 if _DIST.exists():
     app.mount("/assets", StaticFiles(directory=str(_DIST / "assets")), name="assets")
 
+    _NO_CACHE = {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
+    }
+
     @app.get("/{full_path:path}", include_in_schema=False)
     def serve_spa(full_path: str):
         file = _DIST / full_path
-        if file.exists() and file.is_file():
+        if file.exists() and file.is_file() and full_path != "index.html":
             return FileResponse(str(file))
-        return FileResponse(str(_DIST / "index.html"))
+        return FileResponse(str(_DIST / "index.html"), headers=_NO_CACHE)
