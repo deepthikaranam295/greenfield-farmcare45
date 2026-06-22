@@ -391,21 +391,32 @@ export default function FarmDetail() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
-                    <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Type</th>
+                    <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">ID</th>
+                    <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Task</th>
+                    <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden md:table-cell">Assigned To</th>
                     <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Status</th>
-                    <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden sm:table-cell">Start Date</th>
-                    <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden lg:table-cell">End Date</th>
-                    <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden md:table-cell">Notes</th>
+                    <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden sm:table-cell">Plan End</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {tasks.map(t => (
                     <tr key={t.id} className="hover:bg-gray-50/50">
-                      <td className="px-5 py-3 font-body font-medium text-gf-dark capitalize">{t.task_type?.replace('_', ' ')}</td>
+                      <td className="px-5 py-3 text-xs text-gray-400 font-body font-mono">
+                        {t.task_number ? `TASK-${String(t.task_number).padStart(3,'0')}` : '—'}
+                      </td>
+                      <td className="px-5 py-3">
+                        <p className="font-body font-medium text-gf-dark capitalize leading-tight">
+                          {t.task_name || t.task_type?.replace(/_/g,' ')}
+                        </p>
+                        {t.task_name && <p className="text-xs text-gray-400 capitalize">{t.task_type?.replace(/_/g,' ')}</p>}
+                      </td>
+                      <td className="px-5 py-3 text-sm font-body hidden md:table-cell">
+                        {t.assigned_field_team_name
+                          ? <span className="text-gray-700">{t.assigned_field_team_name}</span>
+                          : <span className="text-amber-600 font-semibold text-xs">Unassigned</span>}
+                      </td>
                       <td className="px-5 py-3"><Badge value={t.status} /></td>
-                      <td className="px-5 py-3 text-gray-500 font-body hidden sm:table-cell">{t.scheduled_date || '—'}</td>
-                      <td className="px-5 py-3 text-gray-500 font-body hidden lg:table-cell">{t.planned_end_date || '—'}</td>
-                      <td className="px-5 py-3 text-gray-500 font-body text-xs hidden md:table-cell">{t.notes || '—'}</td>
+                      <td className="px-5 py-3 text-gray-500 font-body text-xs hidden sm:table-cell">{t.planned_end_date || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -749,9 +760,8 @@ function AddTaskModal({ farmId, onClose, onCreated }) {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    getUsers(1, 100).then(res => {
-      const list = res.data || []
-      setWorkers(list.filter(u => ['field_team', 'farm_worker'].includes(u.role) && u.is_active))
+    getUsers(1, 100, 'field_team').then(res => {
+      setWorkers((res.data || []).filter(u => u.is_active))
     }).catch(() => {})
   }, [])
 
