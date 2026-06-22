@@ -21,7 +21,6 @@ export default function StatCard({ icon, label, value, sub, color = 'green', onC
         <p className="text-gray-500 text-xs font-body uppercase tracking-wide mb-0.5">{label}</p>
         <p className="font-heading font-bold text-2xl text-gf-dark">{value}</p>
         {sub && <p className="text-gray-400 text-xs mt-0.5">{sub}</p>}
-        {onClick && <p className="text-xs text-gf-mid font-body mt-0.5">{active ? 'Click to clear' : 'Click to filter'}</p>}
       </div>
     </Tag>
   )
