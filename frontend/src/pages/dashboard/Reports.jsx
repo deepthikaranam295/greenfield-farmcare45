@@ -420,6 +420,69 @@ const fmtDate = iso => {
 const taskLabel = r =>
   r.task_name || r.task_type?.replace(/_/g, ' ') || 'General Visit'
 
+const DEMO_REPORTS = [
+  {
+    id: 'demo-1',
+    report_number: 1,
+    visit_date: '2026-06-22',
+    arrival_time: '09:00:00',
+    departure_time: '14:00:00',
+    task_name: 'Paddy Irrigation',
+    task_type: 'irrigation',
+    submitted_by_name: 'Bhaskar',
+    status: 'completed',
+    next_visit_needed: false,
+    work_done: 'Inspected all irrigation lines and inlet pipes\nCleared blockages and opened water flow to all sections\nVerified water coverage across the entire paddy field\nChecked outlet channels and confirmed drainage is functioning',
+    observations: 'Crop growth is healthy and on schedule for this stage\nSoil moisture is adequate and uniform throughout the field\nNo signs of pest infestation observed\nWater retention is satisfactory – no seepage detected',
+    recommendations: 'Schedule next irrigation after 5 days\nMonitor inlet water level daily\nConsider organic mulching near bunds to reduce evaporation',
+    issues_found: null,
+    photos: [
+      { id: 'dp1', s3_url: 'https://picsum.photos/seed/gf-irr-before/800/600', caption: 'Before – Dry irrigation channels' },
+      { id: 'dp2', s3_url: 'https://picsum.photos/seed/gf-irr-after/800/600',  caption: 'After – Water flowing through channels' },
+    ],
+  },
+  {
+    id: 'demo-2',
+    report_number: 2,
+    visit_date: '2026-06-18',
+    arrival_time: '08:30:00',
+    departure_time: '13:00:00',
+    task_name: 'Fertilizer Application',
+    task_type: 'fertilization',
+    submitted_by_name: 'Ravi',
+    status: 'completed',
+    next_visit_needed: false,
+    work_done: 'Tested soil pH before application – reading 6.2\nApplied NPK 20-20-0 fertilizer as per recommended schedule\nFertilizer spread uniformly across all sections using broadcast method\nLight irrigation carried out post-application to aid absorption',
+    observations: 'Soil pH is slightly acidic (6.2) – within acceptable range\nPrevious fertilizer application shows visible crop response\nNo nutrient deficiency symptoms observed\nWeed growth is minimal near fertilized zones',
+    recommendations: 'Next fertilizer dose (urea top-dressing) in 3 weeks\nAdd agricultural lime if pH drops below 6.0\nAvoid over-watering for 48 hours after application',
+    issues_found: null,
+    photos: [
+      { id: 'dp3', s3_url: 'https://picsum.photos/seed/gf-fert-before/800/600', caption: 'Before – Unfertilized soil' },
+      { id: 'dp4', s3_url: 'https://picsum.photos/seed/gf-fert-after/800/600',  caption: 'After – Fertilizer broadcast applied' },
+    ],
+  },
+  {
+    id: 'demo-3',
+    report_number: 3,
+    visit_date: '2026-06-12',
+    arrival_time: '10:00:00',
+    departure_time: '15:30:00',
+    task_name: 'Pest Inspection',
+    task_type: 'pest_control',
+    submitted_by_name: 'Bhaskar',
+    status: 'follow_up_required',
+    next_visit_needed: true,
+    work_done: 'Conducted full field inspection for pest and disease activity\nIdentified brown plant hopper infestation in sections B and C\nApplied targeted pesticide (Imidacloprid 17.8 SL) to affected zones\nInstalled sticky traps at 5-metre intervals for ongoing monitoring',
+    observations: 'Brown plant hopper detected in sections B and C (~15% coverage)\nNo blast disease or sheath blight observed\nLeaf color is normal in unaffected areas\nBeneficial insects (spiders, ladybirds) present in section A',
+    recommendations: 'Follow-up inspection required in 7 days\nDo not apply additional pesticide without re-inspection\nConsider biological control agents for long-term management\nNotify agronomist if infestation spreads beyond 25% coverage',
+    issues_found: 'Brown plant hopper detected in sections B and C (~15% field coverage)',
+    photos: [
+      { id: 'dp5', s3_url: 'https://picsum.photos/seed/gf-pest-inspect/800/600', caption: 'Pest inspection – Section B infestation' },
+      { id: 'dp6', s3_url: 'https://picsum.photos/seed/gf-pest-trap/800/600',    caption: 'Sticky trap installed for monitoring' },
+    ],
+  },
+]
+
 function FieldReports({ user }) {
   const isFieldOrAdmin = user.role !== 'customer'
   const [farms, setFarms]           = useState([])
@@ -453,6 +516,10 @@ function FieldReports({ user }) {
   useEffect(() => { if (selectedFarm) reload() }, [selectedFarm, page])
 
   const activeFarm = farms.find(f => f.id === selectedFarm)
+  const isDemo = !loading && reports.length === 0
+  const displayReports = isDemo
+    ? DEMO_REPORTS.map(r => ({ ...r, farm_name: activeFarm?.name || 'Your Farm' }))
+    : reports
 
   return (
     <div className="space-y-4">
@@ -484,8 +551,21 @@ function FieldReports({ user }) {
             <div className="w-10 h-10 bg-gf-pale rounded-xl flex items-center justify-center text-xl shrink-0">🌾</div>
             <div>
               <p className="font-heading font-bold text-gf-dark">{activeFarm.name}</p>
-              <p className="text-xs text-gray-400 font-body">{total} report{total !== 1 ? 's' : ''} on record</p>
+              <p className="text-xs text-gray-400 font-body">
+                {isDemo ? 'Sample reports — submit the first real report to replace these' : `${total} report${total !== 1 ? 's' : ''} on record`}
+              </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Demo banner */}
+      {isDemo && (
+        <div className="flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-sm">
+          <span className="text-amber-600 text-base">📋</span>
+          <div>
+            <span className="font-heading font-semibold text-amber-800">Sample Reports</span>
+            <span className="font-body text-amber-700 ml-2">showing how field reports will look once submitted by your team.</span>
           </div>
         </div>
       )}
@@ -494,8 +574,6 @@ function FieldReports({ user }) {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {loading ? (
           <div className="py-16 text-center text-gray-400 font-body">Loading…</div>
-        ) : reports.length === 0 ? (
-          <div className="py-16 text-center text-gray-400 font-body">No reports for this farm yet.</div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
@@ -509,8 +587,8 @@ function FieldReports({ user }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {reports.map(r => (
-                <tr key={r.id} className="hover:bg-gray-50/60 transition-colors">
+              {displayReports.map(r => (
+                <tr key={r.id} className={`hover:bg-gray-50/60 transition-colors ${isDemo ? 'opacity-90' : ''}`}>
                   <td className="px-5 py-3 font-mono text-xs text-gray-500">{reportSerial(r)}</td>
                   <td className="px-5 py-3 font-body font-medium text-gf-dark">{fmtDate(r.visit_date)}</td>
                   <td className="px-5 py-3 font-body capitalize text-gray-700 hidden md:table-cell">{taskLabel(r)}</td>
