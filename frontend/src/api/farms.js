@@ -1,7 +1,10 @@
 import client from './client'
 
-export const getFarms = (page = 1, size = 20) =>
-  client.get('/api/farms', { params: { page, size } }).then(r => r.data)
+export const getFarms = (page = 1, size = 20, customerId = null) => {
+  const params = { page, size }
+  if (customerId) params.customer_id = customerId
+  return client.get('/api/farms', { params }).then(r => r.data)
+}
 
 export const getFarm = (id) =>
   client.get(`/api/farms/${id}`).then(r => r.data.data)

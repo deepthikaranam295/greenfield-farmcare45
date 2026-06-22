@@ -286,7 +286,9 @@ function AssignInline({ taskId, taskType, onAssign, onCancel }) {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    getUsers(1, 100).then(res => setWorkers((res.data || []).filter(u => u.role === 'field_team' && u.is_active))).catch(() => {})
+    getUsers(1, 100, 'field_team').then(res => setWorkers((res.data || []).filter(u => u.is_active))).catch(err => {
+      console.error('Failed to load field team:', err)
+    })
   }, [])
 
   const submit = async () => {
@@ -532,9 +534,14 @@ function CustomerTasks() {
 
 /* ─── Modals ─── */
 function CreateTaskModal({ onClose, onCreated }) {
-  const [farms, setFarms] = useState([])
+  const [allFarms, setAllFarms] = useState([])
+  const [filteredFarms, setFilteredFarms] = useState([])
   const [workers, setWorkers] = useState([])
   const [customers, setCustomers] = useState([])
+  const [loadingCustomers, setLoadingCustomers] = useState(true)
+  const [loadingWorkers, setLoadingWorkers] = useState(true)
+  const [loadingFarms, setLoadingFarms] = useState(true)
+  const [dropdownError, setDropdownError] = useState('')
   const [form, setForm] = useState({
     task_name: '', farm_id: '', customer_id: '', assigned_to: '',
     task_type: 'inspection', priority: 'medium',
@@ -544,15 +551,40 @@ function CreateTaskModal({ onClose, onCreated }) {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    getFarms(1, 100).then(r => setFarms(r.data || []))
-    getUsers(1, 200).then(res => {
-      const list = res.data || []
-      setWorkers(list.filter(u => u.role === 'field_team' && u.is_active))
-      setCustomers(list.filter(u => u.role === 'customer' && u.is_active))
-    }).catch(() => {})
+    setLoadingCustomers(true)
+    getUsers(1, 100, 'customer')
+      .then(res => setCustomers((res.data || []).filter(u => u.is_active).sort((a, b) => a.name.localeCompare(b.name))))
+      .catch(err => { console.error('Failed to load customers:', err); setDropdownError('Failed to load customers.') })
+      .finally(() => setLoadingCustomers(false))
+
+    setLoadingWorkers(true)
+    getUsers(1, 100, 'field_team')
+      .then(res => setWorkers((res.data || []).filter(u => u.is_active).sort((a, b) => a.name.localeCompare(b.name))))
+      .catch(err => { console.error('Failed to load field team:', err); setDropdownError('Failed to load field team.') })
+      .finally(() => setLoadingWorkers(false))
+
+    setLoadingFarms(true)
+    getFarms(1, 100)
+      .then(r => { setAllFarms(r.data || []); setFilteredFarms(r.data || []) })
+      .catch(err => { console.error('Failed to load farms:', err); setDropdownError('Failed to load farms.') })
+      .finally(() => setLoadingFarms(false))
   }, [])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const handleCustomerChange = (customerId) => {
+    set('customer_id', customerId)
+    set('farm_id', '')
+    if (!customerId) {
+      setFilteredFarms(allFarms)
+      return
+    }
+    setLoadingFarms(true)
+    getFarms(1, 100, customerId)
+      .then(r => setFilteredFarms(r.data || []))
+      .catch(err => { console.error('Failed to load farms for customer:', err); setFilteredFarms([]) })
+      .finally(() => setLoadingFarms(false))
+  }
 
   const submit = async e => {
     e.preventDefault()
@@ -575,6 +607,8 @@ function CreateTaskModal({ onClose, onCreated }) {
     } finally { setSaving(false) }
   }
 
+  const sel = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid bg-white disabled:bg-gray-50 disabled:text-gray-400'
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
@@ -584,6 +618,7 @@ function CreateTaskModal({ onClose, onCreated }) {
         </div>
         <form onSubmit={submit} className="px-6 py-5 space-y-4">
           {error && <p className="text-red-600 text-sm font-body bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+          {dropdownError && <p className="text-amber-700 text-sm font-body bg-amber-50 px-3 py-2 rounded-lg">⚠ {dropdownError}</p>}
 
           <div>
             <label className="block text-xs font-body font-medium text-gray-600 mb-1">Task Name</label>
@@ -595,13 +630,13 @@ function CreateTaskModal({ onClose, onCreated }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-body font-medium text-gray-600 mb-1">Task Type *</label>
-              <select required value={form.task_type} onChange={e => set('task_type', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid bg-white">
+              <select required value={form.task_type} onChange={e => set('task_type', e.target.value)} className={sel}>
                 {TASK_TYPES.map(t => <option key={t} value={t} className="capitalize">{t.replace(/_/g, ' ')}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-xs font-body font-medium text-gray-600 mb-1">Priority</label>
-              <select value={form.priority} onChange={e => set('priority', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid bg-white">
+              <select value={form.priority} onChange={e => set('priority', e.target.value)} className={sel}>
                 <option value="high">🔴 High</option>
                 <option value="medium">🟡 Medium</option>
                 <option value="low">🟢 Low</option>
@@ -610,25 +645,45 @@ function CreateTaskModal({ onClose, onCreated }) {
           </div>
 
           <div>
-            <label className="block text-xs font-body font-medium text-gray-600 mb-1">Farm *</label>
-            <select required value={form.farm_id} onChange={e => set('farm_id', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid bg-white">
-              <option value="">Select farm</option>
-              {farms.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+            <label className="block text-xs font-body font-medium text-gray-600 mb-1">Customer</label>
+            <select
+              value={form.customer_id}
+              onChange={e => handleCustomerChange(e.target.value)}
+              disabled={loadingCustomers}
+              className={sel}
+            >
+              <option value="">{loadingCustomers ? 'Loading customers…' : customers.length === 0 ? 'No customers found' : '-- Select customer --'}</option>
+              {customers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.email})</option>)}
             </select>
           </div>
 
           <div>
-            <label className="block text-xs font-body font-medium text-gray-600 mb-1">Customer</label>
-            <select value={form.customer_id} onChange={e => set('customer_id', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid bg-white">
-              <option value="">-- Select customer --</option>
-              {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            <label className="block text-xs font-body font-medium text-gray-600 mb-1">
+              Farm *{form.customer_id ? ' (filtered by selected customer)' : ''}
+            </label>
+            <select
+              required
+              value={form.farm_id}
+              onChange={e => set('farm_id', e.target.value)}
+              disabled={loadingFarms}
+              className={sel}
+            >
+              <option value="">
+                {loadingFarms ? 'Loading farms…' : filteredFarms.length === 0 ? (form.customer_id ? 'No farms found for this customer' : 'No farms found') : 'Select farm'}
+              </option>
+              {filteredFarms.map(f => <option key={f.id} value={f.id}>{f.name}{f.district ? ` — ${f.district}` : ''}</option>)}
             </select>
           </div>
 
           <div>
             <label className="block text-xs font-body font-medium text-gray-600 mb-1">Assign to Field Team</label>
-            <select value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid bg-white">
-              <option value="">-- Unassigned --</option>
+            <select
+              value={form.assigned_to}
+              onChange={e => set('assigned_to', e.target.value)}
+              disabled={loadingWorkers}
+              className={sel}
+            >
+              <option value="">{loadingWorkers ? 'Loading field team…' : workers.length === 0 ? 'No field team members found' : '-- Unassigned --'}</option>
               {workers.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
             </select>
           </div>
@@ -665,6 +720,9 @@ function EditTaskModal({ task, onClose, onSaved }) {
   const [farms, setFarms] = useState([])
   const [workers, setWorkers] = useState([])
   const [customers, setCustomers] = useState([])
+  const [loadingCustomers, setLoadingCustomers] = useState(true)
+  const [loadingWorkers, setLoadingWorkers] = useState(true)
+  const [loadingFarms, setLoadingFarms] = useState(true)
   const [form, setForm] = useState({
     task_name: task.task_name || '',
     task_type: task.task_type || 'inspection',
@@ -680,12 +738,24 @@ function EditTaskModal({ task, onClose, onSaved }) {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    getFarms(1, 100).then(r => setFarms(r.data || []))
-    getUsers(1, 200).then(res => {
-      const list = res.data || []
-      setWorkers(list.filter(u => u.role === 'field_team' && u.is_active))
-      setCustomers(list.filter(u => u.role === 'customer' && u.is_active))
-    }).catch(() => {})
+    setLoadingCustomers(true)
+    getUsers(1, 100, 'customer')
+      .then(res => setCustomers((res.data || []).filter(u => u.is_active).sort((a, b) => a.name.localeCompare(b.name))))
+      .catch(err => console.error('Failed to load customers:', err))
+      .finally(() => setLoadingCustomers(false))
+
+    setLoadingWorkers(true)
+    getUsers(1, 100, 'field_team')
+      .then(res => setWorkers((res.data || []).filter(u => u.is_active).sort((a, b) => a.name.localeCompare(b.name))))
+      .catch(err => console.error('Failed to load field team:', err))
+      .finally(() => setLoadingWorkers(false))
+
+    setLoadingFarms(true)
+    const farmParams = task.customer_id ? [1, 100, task.customer_id] : [1, 100]
+    getFarms(...farmParams)
+      .then(r => setFarms(r.data || []))
+      .catch(err => console.error('Failed to load farms:', err))
+      .finally(() => setLoadingFarms(false))
   }, [])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -711,6 +781,8 @@ function EditTaskModal({ task, onClose, onSaved }) {
     } finally { setSaving(false) }
   }
 
+  const sel = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid bg-white disabled:bg-gray-50 disabled:text-gray-400'
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
@@ -730,13 +802,13 @@ function EditTaskModal({ task, onClose, onSaved }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-body font-medium text-gray-600 mb-1">Task Type</label>
-              <select value={form.task_type} onChange={e => set('task_type', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid bg-white">
+              <select value={form.task_type} onChange={e => set('task_type', e.target.value)} className={sel}>
                 {TASK_TYPES.map(t => <option key={t} value={t} className="capitalize">{t.replace(/_/g, ' ')}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-xs font-body font-medium text-gray-600 mb-1">Priority</label>
-              <select value={form.priority} onChange={e => set('priority', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid bg-white">
+              <select value={form.priority} onChange={e => set('priority', e.target.value)} className={sel}>
                 <option value="high">🔴 High</option>
                 <option value="medium">🟡 Medium</option>
                 <option value="low">🟢 Low</option>
@@ -746,16 +818,24 @@ function EditTaskModal({ task, onClose, onSaved }) {
 
           <div>
             <label className="block text-xs font-body font-medium text-gray-600 mb-1">Customer</label>
-            <select value={form.customer_id} onChange={e => set('customer_id', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid bg-white">
-              <option value="">-- Select customer --</option>
-              {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            <select value={form.customer_id} onChange={e => set('customer_id', e.target.value)} disabled={loadingCustomers} className={sel}>
+              <option value="">{loadingCustomers ? 'Loading customers…' : customers.length === 0 ? 'No customers found' : '-- Select customer --'}</option>
+              {customers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.email})</option>)}
             </select>
           </div>
 
           <div>
+            <label className="block text-xs font-body font-medium text-gray-600 mb-1">Farm</label>
+            <select value={task.farm_id || ''} disabled className={sel}>
+              <option>{loadingFarms ? 'Loading…' : (farms.find(f => f.id === task.farm_id)?.name || task.farm_id || 'Unknown')}</option>
+            </select>
+            <p className="text-xs text-gray-400 mt-1 font-body">Farm cannot be changed after creation.</p>
+          </div>
+
+          <div>
             <label className="block text-xs font-body font-medium text-gray-600 mb-1">Assigned Field Team Member</label>
-            <select value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid bg-white">
-              <option value="">-- Unassigned --</option>
+            <select value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)} disabled={loadingWorkers} className={sel}>
+              <option value="">{loadingWorkers ? 'Loading field team…' : workers.length === 0 ? 'No field team members found' : '-- Unassigned --'}</option>
               {workers.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
             </select>
           </div>
@@ -773,7 +853,7 @@ function EditTaskModal({ task, onClose, onSaved }) {
 
           <div>
             <label className="block text-xs font-body font-medium text-gray-600 mb-1">Status</label>
-            <select value={form.status} onChange={e => set('status', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid bg-white">
+            <select value={form.status} onChange={e => set('status', e.target.value)} className={sel}>
               {[...STATUSES, 'requested'].map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
             </select>
           </div>

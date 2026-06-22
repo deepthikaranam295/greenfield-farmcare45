@@ -34,16 +34,20 @@ def list_farms(
     skip: int = 0,
     limit: int = 20,
     include_deleted: bool = False,
+    customer_id: uuid.UUID = None,
 ) -> tuple[list[Farm], int]:
     logger.info(
-        "list_farms: user_id=%s role=%s skip=%d limit=%d include_deleted=%s",
-        current_user.id, current_user.role, skip, limit, include_deleted,
+        "list_farms: user_id=%s role=%s skip=%d limit=%d include_deleted=%s customer_id=%s",
+        current_user.id, current_user.role, skip, limit, include_deleted, customer_id,
     )
     q = db.query(Farm)
     if not include_deleted:
         q = q.filter(Farm.is_deleted == False)
     if current_user.role == UserRole.customer:
         q = q.filter(Farm.customer_id == current_user.id)
+    elif customer_id:
+        q = q.filter(Farm.customer_id == customer_id)
+    q = q.order_by(Farm.name.asc())
     total = q.count()
     farms = q.offset(skip).limit(limit).all()
     logger.info("list_farms: returning total=%d", total)

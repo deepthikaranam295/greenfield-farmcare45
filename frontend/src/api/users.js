@@ -1,7 +1,10 @@
 import client from './client'
 
-export const getUsers = (page = 1, size = 20) =>
-  client.get('/api/users', { params: { page, size } }).then(r => r.data)
+export const getUsers = (page = 1, size = 20, role = null) => {
+  const params = { page, size }
+  if (role) params.role = role
+  return client.get('/api/users', { params }).then(r => r.data)
+}
 
 export const createUser = (payload) =>
   client.post('/api/users', payload).then(r => r.data.data)

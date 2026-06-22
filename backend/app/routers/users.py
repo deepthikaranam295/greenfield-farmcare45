@@ -1,5 +1,6 @@
 import logging
-from fastapi import APIRouter, Depends, Request, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Depends, Request, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.user import UserCreate, UserOut, UserCreateResult
@@ -19,9 +20,16 @@ def list_users(
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
     p: Pagination = Depends(),
+    role: Optional[str] = Query(None, description="Filter by role: admin, field_team, customer"),
 ):
-    logger.info("GET /api/users: page=%d size=%d", p.page, p.size)
-    q = db.query(User).filter(User.is_deleted == False).order_by(User.created_at.desc())
+    logger.info("GET /api/users: page=%d size=%d role=%s", p.page, p.size, role)
+    q = db.query(User).filter(User.is_deleted == False)
+    if role:
+        try:
+            q = q.filter(User.role == UserRole(role))
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid role: {role}. Valid values: admin, field_team, customer")
+    q = q.order_by(User.name.asc())
     total = q.count()
     users = q.offset(p.skip).limit(p.size).all()
     logger.info("GET /api/users: returning total=%d", total)

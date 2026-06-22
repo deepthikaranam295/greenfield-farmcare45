@@ -1,5 +1,6 @@
 import logging
 import uuid
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -31,15 +32,21 @@ def list_farms(
     current_user: User = Depends(get_current_user),
     p: Pagination = Depends(),
     include_deleted: bool = Query(False),
+    customer_id: Optional[uuid.UUID] = Query(None, description="Admin only: filter farms by customer"),
 ):
     logger.info(
-        "GET /api/farms: user_id=%s include_deleted=%s page=%d size=%d",
-        current_user.id, include_deleted, p.page, p.size,
+        "GET /api/farms: user_id=%s include_deleted=%s page=%d size=%d customer_id=%s",
+        current_user.id, include_deleted, p.page, p.size, customer_id,
     )
     if include_deleted and current_user.role != UserRole.admin:
         logger.warning("GET /api/farms: non-admin requested include_deleted user_id=%s", current_user.id)
         raise HTTPException(status_code=403, detail="Only admins can view deleted records")
-    farms, total = farm_service.list_farms(db, current_user, skip=p.skip, limit=p.size, include_deleted=include_deleted)
+    if customer_id and current_user.role != UserRole.admin:
+        raise HTTPException(status_code=403, detail="Only admins can filter farms by customer")
+    farms, total = farm_service.list_farms(
+        db, current_user, skip=p.skip, limit=p.size,
+        include_deleted=include_deleted, customer_id=customer_id,
+    )
     logger.info("GET /api/farms: returning total=%d", total)
     return PaginatedResponse(
         data=[FarmOut.model_validate(f) for f in farms],
