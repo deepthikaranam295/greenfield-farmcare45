@@ -412,9 +412,9 @@ const reportSerial = r =>
 
 const fmtDate = iso => {
   if (!iso) return '—'
-  const d = new Date(iso)
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-  return `${String(d.getDate()).padStart(2,'0')} ${months[d.getMonth()]} ${d.getFullYear()}`
+  const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number)
+  return `${String(d).padStart(2,'0')} ${months[m - 1]} ${y}`
 }
 
 const taskLabel = r =>
@@ -485,9 +485,14 @@ const DEMO_REPORTS = [
 
 function FieldReports({ user }) {
   const isFieldOrAdmin = user.role !== 'customer'
+
   const [farms, setFarms]           = useState([])
   const [selectedFarm, setSelectedFarm] = useState('')
-  const [reports, setReports]       = useState([])
+  const [farmName, setFarmName]     = useState('Customer One Paddy Field')
+
+  // Start with demo data so the page is never blank
+  const [reports, setReports]       = useState(DEMO_REPORTS)
+  const [isDemo, setIsDemo]         = useState(true)
   const [total, setTotal]           = useState(0)
   const [page, setPage]             = useState(1)
   const [pages, setPages]           = useState(1)
@@ -495,40 +500,61 @@ function FieldReports({ user }) {
   const [showCreate, setShowCreate] = useState(false)
   const [viewReport, setViewReport] = useState(null)
 
+  // Load farms; select first one automatically
   useEffect(() => {
     getFarms(1, 100).then(r => {
       const list = r.data || []
       setFarms(list)
-      if (list.length > 0) setSelectedFarm(list[0].id)
-    })
+      if (list.length > 0) {
+        setSelectedFarm(list[0].id)
+        setFarmName(list[0].name)
+      }
+    }).catch(() => {})
   }, [])
 
-  const reload = () => {
-    if (!selectedFarm) return
+  const reload = (farmId, pg = page) => {
+    if (!farmId) return
     setLoading(true)
-    getFarmReports(selectedFarm, page).then(r => {
-      setReports(r.data || [])
+    getFarmReports(farmId, pg).then(r => {
+      const real = r.data || []
+      if (real.length > 0) {
+        setReports(real)
+        setIsDemo(false)
+      } else {
+        setReports(DEMO_REPORTS)
+        setIsDemo(true)
+      }
       setTotal(r.total || 0)
       setPages(r.pages || 1)
+    }).catch(() => {
+      setReports(DEMO_REPORTS)
+      setIsDemo(true)
     }).finally(() => setLoading(false))
   }
 
-  useEffect(() => { if (selectedFarm) reload() }, [selectedFarm, page])
+  useEffect(() => { reload(selectedFarm, page) }, [selectedFarm, page])
 
-  const activeFarm = farms.find(f => f.id === selectedFarm)
-  const isDemo = !loading && reports.length === 0
+  const switchFarm = (f) => {
+    setSelectedFarm(f.id)
+    setFarmName(f.name)
+    setPage(1)
+    setReports(DEMO_REPORTS)   // instant — no flash of empty table
+    setIsDemo(true)
+  }
+
+  // Inject farm name into demo reports
   const displayReports = isDemo
-    ? DEMO_REPORTS.map(r => ({ ...r, farm_name: activeFarm?.name || 'Your Farm' }))
+    ? DEMO_REPORTS.map(r => ({ ...r, farm_name: farmName, customer_name: 'Customer One' }))
     : reports
 
   return (
     <div className="space-y-4">
-      {/* Farm selector + action button */}
+      {/* Farm tabs + Submit button */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        {farms.length > 1 && (
+        {farms.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-1">
             {farms.map(f => (
-              <button key={f.id} onClick={() => { setSelectedFarm(f.id); setPage(1) }}
+              <button key={f.id} onClick={() => switchFarm(f)}
                 className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-body font-medium transition-colors
                   ${selectedFarm === f.id ? 'bg-gf-mid text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-gf-mid'}`}>
                 {f.name}
@@ -545,66 +571,69 @@ function FieldReports({ user }) {
       </div>
 
       {/* Farm heading */}
-      {activeFarm && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gf-pale rounded-xl flex items-center justify-center text-xl shrink-0">🌾</div>
-            <div>
-              <p className="font-heading font-bold text-gf-dark">{activeFarm.name}</p>
-              <p className="text-xs text-gray-400 font-body">
-                {isDemo ? 'Sample reports — submit the first real report to replace these' : `${total} report${total !== 1 ? 's' : ''} on record`}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Demo banner */}
-      {isDemo && (
-        <div className="flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-sm">
-          <span className="text-amber-600 text-base">📋</span>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gf-pale rounded-xl flex items-center justify-center text-xl shrink-0">🌾</div>
           <div>
-            <span className="font-heading font-semibold text-amber-800">Sample Reports</span>
-            <span className="font-body text-amber-700 ml-2">showing how field reports will look once submitted by your team.</span>
+            <p className="font-heading font-bold text-gf-dark">{farmName}</p>
+            <p className="text-xs text-gray-400 font-body">
+              {isDemo
+                ? 'Sample reports — actual reports will appear here after field visits'
+                : `${total} report${total !== 1 ? 's' : ''} on record`}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Sample data notice */}
+      {isDemo && (
+        <div className="flex items-start gap-3 bg-gf-pale/60 border border-gf-light/30 rounded-xl px-4 py-3">
+          <span className="text-gf-dark text-base mt-0.5">📋</span>
+          <div>
+            <p className="font-heading font-semibold text-gf-dark text-sm">Sample Field Reports</p>
+            <p className="font-body text-gray-600 text-xs mt-0.5">
+              These are example reports showing how GreenField documents every field visit.
+              Click <strong>View</strong> to see the full report with work performed, observations, photos, and recommendations.
+            </p>
           </div>
         </div>
       )}
 
-      {/* Reports table */}
+      {/* Reports table — always visible */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {loading ? (
-          <div className="py-16 text-center text-gray-400 font-body">Loading…</div>
+          <div className="py-12 text-center text-gray-400 font-body text-sm">Loading reports…</div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
                 <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Report ID</th>
-                <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Visit Date</th>
-                <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden md:table-cell">Task / Activity</th>
+                <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Date</th>
+                <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden md:table-cell">Task</th>
                 <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden sm:table-cell">Field Team</th>
                 <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Status</th>
-                <th className="px-5 py-3" />
+                <th className="px-5 py-3 text-right text-xs font-heading text-gray-500 uppercase tracking-wide">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {displayReports.map(r => (
-                <tr key={r.id} className={`hover:bg-gray-50/60 transition-colors ${isDemo ? 'opacity-90' : ''}`}>
-                  <td className="px-5 py-3 font-mono text-xs text-gray-500">{reportSerial(r)}</td>
-                  <td className="px-5 py-3 font-body font-medium text-gf-dark">{fmtDate(r.visit_date)}</td>
-                  <td className="px-5 py-3 font-body capitalize text-gray-700 hidden md:table-cell">{taskLabel(r)}</td>
-                  <td className="px-5 py-3 font-body text-gray-700 hidden sm:table-cell">
+                <tr key={r.id} className="hover:bg-gray-50/60 transition-colors">
+                  <td className="px-5 py-3.5">
+                    <span className="font-mono text-xs text-gf-mid font-semibold">{reportSerial(r)}</span>
+                  </td>
+                  <td className="px-5 py-3.5 font-body font-medium text-gf-dark whitespace-nowrap">{fmtDate(r.visit_date)}</td>
+                  <td className="px-5 py-3.5 hidden md:table-cell">
+                    <p className="font-body font-medium text-gray-800 capitalize leading-tight">{taskLabel(r)}</p>
+                  </td>
+                  <td className="px-5 py-3.5 font-body text-gray-700 hidden sm:table-cell">
                     {r.submitted_by_name || <span className="text-gray-300">—</span>}
                   </td>
-                  <td className="px-5 py-3">
+                  <td className="px-5 py-3.5">
                     <Badge value={r.status} />
-                    {r.next_visit_needed && r.status !== 'follow_up_required' && (
-                      <span className="ml-1 text-xs text-amber-600 font-body hidden lg:inline">Follow-up</span>
-                    )}
                   </td>
-                  <td className="px-5 py-3 text-right">
-                    <button
-                      onClick={() => setViewReport(r)}
-                      className="text-xs font-heading font-semibold text-gf-mid border border-gf-mid rounded-lg px-3 py-1 hover:bg-gf-pale transition-colors">
+                  <td className="px-5 py-3.5 text-right">
+                    <button onClick={() => setViewReport(r)}
+                      className="text-xs font-heading font-semibold text-gf-mid border border-gf-mid rounded-lg px-3 py-1.5 hover:bg-gf-pale transition-colors">
                       View
                     </button>
                   </td>
@@ -613,28 +642,30 @@ function FieldReports({ user }) {
             </tbody>
           </table>
         )}
-        {pages > 1 && (
+        {!isDemo && pages > 1 && (
           <div className="px-5 py-3 border-t border-gray-100">
             <Pagination page={page} pages={pages} onPage={setPage} />
           </div>
         )}
       </div>
 
+      {/* Report detail modal */}
       {viewReport && (
         <ReportDetailModal
           report={viewReport}
-          farmName={activeFarm?.name}
-          isFieldOrAdmin={isFieldOrAdmin}
+          farmName={farmName}
+          isFieldOrAdmin={isFieldOrAdmin && !isDemo}
           onClose={() => setViewReport(null)}
-          onUploaded={() => { reload(); setViewReport(null) }}
+          onUploaded={() => { reload(selectedFarm, page); setViewReport(null) }}
         />
       )}
 
+      {/* Create report modal */}
       {showCreate && selectedFarm && (
         <CreateReportModal
           farmId={selectedFarm}
           onClose={() => setShowCreate(false)}
-          onCreated={() => { setShowCreate(false); reload() }}
+          onCreated={() => { setShowCreate(false); reload(selectedFarm, 1) }}
         />
       )}
     </div>
