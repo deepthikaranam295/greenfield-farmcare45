@@ -9,6 +9,7 @@ const colors = {
   draft:       'bg-gray-100 text-gray-600',
   submitted:   'bg-blue-100 text-blue-700',
   reviewed:    'bg-purple-100 text-purple-700',
+  follow_up_required: 'bg-orange-100 text-orange-700',
   basic:       'bg-gray-100 text-gray-600',
   standard:    'bg-blue-100 text-blue-700',
   premium:     'bg-amber-100 text-amber-700',
@@ -19,7 +20,7 @@ export default function Badge({ value }) {
   const cls = colors[value] || 'bg-gray-100 text-gray-600'
   return (
     <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-heading font-semibold capitalize ${cls}`}>
-      {value?.replace('_', ' ')}
+      {value?.replace(/_/g, ' ')}
     </span>
   )
 }

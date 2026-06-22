@@ -407,17 +407,30 @@ function MonthlyChart({ data }) {
 /* ═══════════════════════════════════════════════════════════════
    FIELD REPORTS
 ═══════════════════════════════════════════════════════════════ */
+const reportSerial = r =>
+  r.report_number ? `REPORT-${String(r.report_number).padStart(3, '0')}` : '—'
+
+const fmtDate = iso => {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  return `${String(d.getDate()).padStart(2,'0')} ${months[d.getMonth()]} ${d.getFullYear()}`
+}
+
+const taskLabel = r =>
+  r.task_name || r.task_type?.replace(/_/g, ' ') || 'General Visit'
+
 function FieldReports({ user }) {
   const isFieldOrAdmin = user.role !== 'customer'
-  const [farms, setFarms]         = useState([])
+  const [farms, setFarms]           = useState([])
   const [selectedFarm, setSelectedFarm] = useState('')
-  const [reports, setReports]     = useState([])
-  const [total, setTotal]         = useState(0)
-  const [page, setPage]           = useState(1)
-  const [pages, setPages]         = useState(1)
-  const [loading, setLoading]     = useState(false)
+  const [reports, setReports]       = useState([])
+  const [total, setTotal]           = useState(0)
+  const [page, setPage]             = useState(1)
+  const [pages, setPages]           = useState(1)
+  const [loading, setLoading]       = useState(false)
   const [showCreate, setShowCreate] = useState(false)
-  const [expandedId, setExpandedId] = useState(null)
+  const [viewReport, setViewReport] = useState(null)
 
   useEffect(() => {
     getFarms(1, 100).then(r => {
@@ -439,8 +452,11 @@ function FieldReports({ user }) {
 
   useEffect(() => { if (selectedFarm) reload() }, [selectedFarm, page])
 
+  const activeFarm = farms.find(f => f.id === selectedFarm)
+
   return (
     <div className="space-y-4">
+      {/* Farm selector + action button */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         {farms.length > 1 && (
           <div className="flex gap-2 overflow-x-auto pb-1">
@@ -461,78 +477,80 @@ function FieldReports({ user }) {
         )}
       </div>
 
+      {/* Farm heading */}
+      {activeFarm && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gf-pale rounded-xl flex items-center justify-center text-xl shrink-0">🌾</div>
+            <div>
+              <p className="font-heading font-bold text-gf-dark">{activeFarm.name}</p>
+              <p className="text-xs text-gray-400 font-body">{total} report{total !== 1 ? 's' : ''} on record</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reports table */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {loading ? (
           <div className="py-16 text-center text-gray-400 font-body">Loading…</div>
         ) : reports.length === 0 ? (
           <div className="py-16 text-center text-gray-400 font-body">No reports for this farm yet.</div>
         ) : (
-          <div className="divide-y divide-gray-100">
-            {reports.map(report => (
-              <div key={report.id} className="px-5 py-4">
-                <div
-                  className="flex items-start justify-between cursor-pointer gap-4"
-                  onClick={() => setExpandedId(expandedId === report.id ? null : report.id)}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gf-pale rounded-xl flex items-center justify-center text-lg shrink-0">📋</div>
-                    <div>
-                      <p className="font-body font-semibold text-gf-dark text-sm">{report.visit_date}</p>
-                      <p className="text-xs text-gray-400 font-body">
-                        {report.arrival_time && `Arrival: ${report.arrival_time}`}
-                        {report.arrival_time && report.departure_time && ' · '}
-                        {report.departure_time && `Departure: ${report.departure_time}`}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Badge value={report.status} />
-                    {report.next_visit_needed && (
-                      <span className="text-xs text-amber-600 font-body font-semibold bg-amber-50 px-2 py-0.5 rounded-full hidden sm:inline">Next visit needed</span>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Report ID</th>
+                <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Visit Date</th>
+                <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden md:table-cell">Task / Activity</th>
+                <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden sm:table-cell">Field Team</th>
+                <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Status</th>
+                <th className="px-5 py-3" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {reports.map(r => (
+                <tr key={r.id} className="hover:bg-gray-50/60 transition-colors">
+                  <td className="px-5 py-3 font-mono text-xs text-gray-500">{reportSerial(r)}</td>
+                  <td className="px-5 py-3 font-body font-medium text-gf-dark">{fmtDate(r.visit_date)}</td>
+                  <td className="px-5 py-3 font-body capitalize text-gray-700 hidden md:table-cell">{taskLabel(r)}</td>
+                  <td className="px-5 py-3 font-body text-gray-700 hidden sm:table-cell">
+                    {r.submitted_by_name || <span className="text-gray-300">—</span>}
+                  </td>
+                  <td className="px-5 py-3">
+                    <Badge value={r.status} />
+                    {r.next_visit_needed && r.status !== 'follow_up_required' && (
+                      <span className="ml-1 text-xs text-amber-600 font-body hidden lg:inline">Follow-up</span>
                     )}
-                    <span className="text-gray-400 text-sm">{expandedId === report.id ? '▲' : '▼'}</span>
-                  </div>
-                </div>
-
-                {expandedId === report.id && (
-                  <div className="mt-4 space-y-3 pl-13">
-                    {report.work_done && (
-                      <div>
-                        <p className="text-xs font-body font-medium text-gray-500 uppercase tracking-wide mb-1">Work Done</p>
-                        <p className="text-sm font-body text-gray-700 bg-gray-50 rounded-lg px-3 py-2">{report.work_done}</p>
-                      </div>
-                    )}
-                    {report.issues_found && (
-                      <div>
-                        <p className="text-xs font-body font-medium text-gray-500 uppercase tracking-wide mb-1">Issues Found</p>
-                        <p className="text-sm font-body text-gray-700 bg-amber-50 rounded-lg px-3 py-2">{report.issues_found}</p>
-                      </div>
-                    )}
-                    {report.photos?.length > 0 && (
-                      <div>
-                        <p className="text-xs font-body font-medium text-gray-500 uppercase tracking-wide mb-2">Photos ({report.photos.length})</p>
-                        <div className="flex gap-2 flex-wrap">
-                          {report.photos.map(p => (
-                            <a key={p.id} href={p.s3_url} target="_blank" rel="noopener noreferrer">
-                              <img src={p.s3_url} alt={p.caption || 'Report photo'}
-                                className="w-20 h-20 object-cover rounded-lg border border-gray-200 hover:opacity-90 transition-opacity"
-                                onError={e => { e.target.style.display = 'none' }} />
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {isFieldOrAdmin && <PhotoUpload reportId={report.id} onUploaded={reload} />}
-                  </div>
-                )}
-              </div>
-            ))}
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    <button
+                      onClick={() => setViewReport(r)}
+                      className="text-xs font-heading font-semibold text-gf-mid border border-gf-mid rounded-lg px-3 py-1 hover:bg-gf-pale transition-colors">
+                      View
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {pages > 1 && (
+          <div className="px-5 py-3 border-t border-gray-100">
+            <Pagination page={page} pages={pages} onPage={setPage} />
           </div>
         )}
-        <div className="px-5 py-3 border-t border-gray-100">
-          <Pagination page={page} pages={pages} onPage={setPage} />
-        </div>
       </div>
+
+      {viewReport && (
+        <ReportDetailModal
+          report={viewReport}
+          farmName={activeFarm?.name}
+          isFieldOrAdmin={isFieldOrAdmin}
+          onClose={() => setViewReport(null)}
+          onUploaded={() => { reload(); setViewReport(null) }}
+        />
+      )}
 
       {showCreate && selectedFarm && (
         <CreateReportModal
@@ -541,6 +559,185 @@ function FieldReports({ user }) {
           onCreated={() => { setShowCreate(false); reload() }}
         />
       )}
+    </div>
+  )
+}
+
+/* ── Report Detail Modal ── */
+function ReportDetailModal({ report: r, farmName, isFieldOrAdmin, onClose, onUploaded }) {
+  const handlePrint = () => window.print()
+
+  const bulletList = text =>
+    text ? text.split('\n').filter(Boolean).map((line, i) => (
+      <li key={i} className="font-body text-sm text-gray-700">{line}</li>
+    )) : null
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-4">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
+          <div>
+            <p className="font-mono text-xs text-gray-400">{reportSerial(r)}</p>
+            <h2 className="font-heading font-bold text-gf-dark text-lg capitalize">{taskLabel(r)}</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={handlePrint}
+              className="text-xs border border-gray-200 text-gray-600 font-body px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors hidden sm:block">
+              Print / PDF
+            </button>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none font-light">×</button>
+          </div>
+        </div>
+
+        <div className="px-6 py-5 space-y-5 max-h-[75vh] overflow-y-auto">
+
+          {/* Farm & Visit Info grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-gf-pale/40 rounded-xl p-4 space-y-2">
+              <p className="text-xs font-heading font-semibold text-gray-500 uppercase tracking-wide">Farm Information</p>
+              <InfoRow label="Farm" value={r.farm_name || farmName} />
+              <InfoRow label="Customer" value={r.customer_name} />
+            </div>
+            <div className="bg-blue-50/50 rounded-xl p-4 space-y-2">
+              <p className="text-xs font-heading font-semibold text-gray-500 uppercase tracking-wide">Visit Details</p>
+              <InfoRow label="Date" value={fmtDate(r.visit_date)} />
+              <InfoRow label="Arrival" value={r.arrival_time ? r.arrival_time.slice(0,5) : null} />
+              <InfoRow label="Departure" value={r.departure_time ? r.departure_time.slice(0,5) : null} />
+              <InfoRow label="Field Team" value={r.submitted_by_name} />
+            </div>
+          </div>
+
+          {/* Task link */}
+          {(r.task_name || r.task_type) && (
+            <div className="flex items-center gap-2 text-sm font-body text-gray-600 bg-gray-50 rounded-xl px-4 py-3">
+              <span className="text-gf-mid font-semibold">Task:</span>
+              <span className="capitalize">{r.task_name || r.task_type?.replace(/_/g,' ')}</span>
+              {r.task_type && r.task_name && (
+                <span className="text-gray-400 capitalize text-xs">({r.task_type?.replace(/_/g,' ')})</span>
+              )}
+            </div>
+          )}
+
+          {/* Work Performed */}
+          {r.work_done && (
+            <Section title="Work Performed" icon="✅" color="green">
+              <ul className="space-y-1.5 list-disc list-inside pl-1">
+                {bulletList(r.work_done)}
+              </ul>
+            </Section>
+          )}
+
+          {/* Observations */}
+          {r.observations && (
+            <Section title="Observations" icon="👁" color="blue">
+              <ul className="space-y-1.5 list-disc list-inside pl-1">
+                {bulletList(r.observations)}
+              </ul>
+            </Section>
+          )}
+
+          {/* Issues found (legacy) */}
+          {r.issues_found && (
+            <Section title="Issues Found" icon="⚠" color="amber">
+              <ul className="space-y-1.5 list-disc list-inside pl-1">
+                {bulletList(r.issues_found)}
+              </ul>
+            </Section>
+          )}
+
+          {/* Recommendations */}
+          {r.recommendations && (
+            <Section title="Recommendations" icon="💡" color="purple">
+              <ul className="space-y-1.5 list-disc list-inside pl-1">
+                {bulletList(r.recommendations)}
+              </ul>
+            </Section>
+          )}
+
+          {/* Photos */}
+          {r.photos?.length > 0 && (
+            <div>
+              <p className="text-xs font-heading font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                Photos ({r.photos.length})
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {r.photos.map(p => (
+                  <a key={p.id} href={p.s3_url} target="_blank" rel="noopener noreferrer" className="group relative block">
+                    <img
+                      src={p.s3_url}
+                      alt={p.caption || 'Field photo'}
+                      className="w-full h-32 object-cover rounded-xl border border-gray-200 group-hover:opacity-90 transition-opacity"
+                      onError={e => { e.target.parentElement.style.display = 'none' }}
+                    />
+                    {p.caption && (
+                      <p className="text-xs text-gray-500 font-body mt-1 truncate">{p.caption}</p>
+                    )}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Upload photo (field/admin) */}
+          {isFieldOrAdmin && (
+            <div className="pt-1">
+              <p className="text-xs font-heading font-semibold text-gray-500 uppercase tracking-wide mb-2">Add Photo</p>
+              <PhotoUpload reportId={r.id} onUploaded={onUploaded} />
+            </div>
+          )}
+
+          {/* Completion status */}
+          <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-body text-gray-500">Status:</span>
+              <Badge value={r.status} />
+            </div>
+            {r.next_visit_needed && (
+              <span className="text-xs bg-amber-50 text-amber-700 font-body font-semibold px-3 py-1 rounded-full border border-amber-100">
+                Follow-up visit required
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Footer actions */}
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-gray-100 rounded-b-2xl bg-gray-50">
+          <button onClick={handlePrint}
+            className="text-xs border border-gray-300 text-gray-600 font-body px-4 py-2 rounded-lg hover:bg-white transition-colors">
+            Print / PDF
+          </button>
+          <button onClick={onClose}
+            className="text-xs bg-gf-mid text-white font-heading font-semibold px-4 py-2 rounded-lg hover:bg-gf-dark transition-colors">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function InfoRow({ label, value }) {
+  if (!value) return null
+  return (
+    <div className="flex items-start gap-2">
+      <span className="text-xs text-gray-400 font-body shrink-0 w-20">{label}</span>
+      <span className="text-xs font-body font-medium text-gray-800 leading-snug">{value}</span>
+    </div>
+  )
+}
+
+function Section({ title, icon, color, children }) {
+  const bg = { green: 'bg-green-50', blue: 'bg-blue-50', amber: 'bg-amber-50', purple: 'bg-purple-50' }
+  const border = { green: 'border-green-100', blue: 'border-blue-100', amber: 'border-amber-100', purple: 'border-purple-100' }
+  const text = { green: 'text-green-700', blue: 'text-blue-700', amber: 'text-amber-700', purple: 'text-purple-700' }
+  return (
+    <div className={`rounded-xl border p-4 ${bg[color]} ${border[color]}`}>
+      <p className={`text-xs font-heading font-semibold uppercase tracking-wide mb-2 ${text[color]}`}>
+        {icon} {title}
+      </p>
+      {children}
     </div>
   )
 }
@@ -583,10 +780,16 @@ function PhotoUpload({ reportId, onUploaded }) {
 
 /* ── Create Report Modal ── */
 function CreateReportModal({ farmId, onClose, onCreated }) {
-  const [form, setForm] = useState({ visit_date: '', arrival_time: '', departure_time: '', work_done: '', issues_found: '', next_visit_needed: false })
+  const [form, setForm] = useState({
+    visit_date: '', arrival_time: '', departure_time: '',
+    work_done: '', observations: '', recommendations: '',
+    issues_found: '', next_visit_needed: false,
+  })
   const [error, setError]   = useState('')
   const [saving, setSaving] = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const inp = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid resize-none'
 
   const submit = async e => {
     e.preventDefault()
@@ -598,6 +801,8 @@ function CreateReportModal({ farmId, onClose, onCreated }) {
         arrival_time: form.arrival_time || null,
         departure_time: form.departure_time || null,
         work_done: form.work_done || null,
+        observations: form.observations || null,
+        recommendations: form.recommendations || null,
         issues_found: form.issues_found || null,
         next_visit_needed: form.next_visit_needed,
       })
@@ -609,7 +814,7 @@ function CreateReportModal({ farmId, onClose, onCreated }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white">
           <h2 className="font-heading font-bold text-gf-dark">Submit Field Report</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
@@ -618,37 +823,42 @@ function CreateReportModal({ farmId, onClose, onCreated }) {
           {error && <p className="text-red-600 text-sm font-body bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
           <div>
             <label className="block text-xs font-body font-medium text-gray-600 mb-1">Visit Date *</label>
-            <input required type="date" value={form.visit_date} onChange={e => set('visit_date', e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid" />
+            <input required type="date" value={form.visit_date} onChange={e => set('visit_date', e.target.value)} className={inp} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-body font-medium text-gray-600 mb-1">Arrival Time</label>
-              <input type="time" value={form.arrival_time} onChange={e => set('arrival_time', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid" />
+              <input type="time" value={form.arrival_time} onChange={e => set('arrival_time', e.target.value)} className={inp} />
             </div>
             <div>
               <label className="block text-xs font-body font-medium text-gray-600 mb-1">Departure Time</label>
-              <input type="time" value={form.departure_time} onChange={e => set('departure_time', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid" />
+              <input type="time" value={form.departure_time} onChange={e => set('departure_time', e.target.value)} className={inp} />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-body font-medium text-gray-600 mb-1">Work Done</label>
+            <label className="block text-xs font-body font-medium text-gray-600 mb-1">Work Performed</label>
             <textarea value={form.work_done} onChange={e => set('work_done', e.target.value)} rows={3}
-              placeholder="Describe what was done…"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid resize-none" />
+              placeholder="Describe work done (one item per line)…" className={inp} />
+          </div>
+          <div>
+            <label className="block text-xs font-body font-medium text-gray-600 mb-1">Observations</label>
+            <textarea value={form.observations} onChange={e => set('observations', e.target.value)} rows={3}
+              placeholder="Crop health, soil condition, pest signs… (one per line)" className={inp} />
+          </div>
+          <div>
+            <label className="block text-xs font-body font-medium text-gray-600 mb-1">Recommendations</label>
+            <textarea value={form.recommendations} onChange={e => set('recommendations', e.target.value)} rows={2}
+              placeholder="Next steps or actions required… (one per line)" className={inp} />
           </div>
           <div>
             <label className="block text-xs font-body font-medium text-gray-600 mb-1">Issues Found</label>
             <textarea value={form.issues_found} onChange={e => set('issues_found', e.target.value)} rows={2}
-              placeholder="Any issues observed…"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-gf-mid resize-none" />
+              placeholder="Critical issues to flag…" className={inp} />
           </div>
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={form.next_visit_needed} onChange={e => set('next_visit_needed', e.target.checked)}
               className="w-4 h-4 rounded accent-gf-mid" />
-            <span className="text-sm font-body text-gray-700">Next visit needed</span>
+            <span className="text-sm font-body text-gray-700">Follow-up visit required</span>
           </label>
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}

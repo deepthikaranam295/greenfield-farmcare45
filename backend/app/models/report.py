@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone, date, time
 from typing import Optional
-from sqlalchemy import String, Date, Time, DateTime, ForeignKey, Text, Boolean, Enum as SAEnum
+from sqlalchemy import String, BigInteger, Date, Time, DateTime, ForeignKey, Text, Boolean, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
@@ -12,6 +12,8 @@ class ReportStatus(str, enum.Enum):
     draft = "draft"
     submitted = "submitted"
     reviewed = "reviewed"
+    completed = "completed"
+    follow_up_required = "follow_up_required"
 
 
 class FieldReport(Base):
@@ -24,9 +26,12 @@ class FieldReport(Base):
     visit_date: Mapped[date] = mapped_column(Date, nullable=False)
     arrival_time: Mapped[time] = mapped_column(Time, nullable=True)
     departure_time: Mapped[time] = mapped_column(Time, nullable=True)
-    work_done: Mapped[str] = mapped_column(Text, nullable=True)
+    work_done: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    observations: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    recommendations: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    report_number: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     status: Mapped[ReportStatus] = mapped_column(SAEnum(ReportStatus), default=ReportStatus.draft)
-    issues_found: Mapped[str] = mapped_column(Text, nullable=True)
+    issues_found: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     next_visit_needed: Mapped[bool] = mapped_column(Boolean, default=False)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)

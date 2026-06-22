@@ -19,6 +19,34 @@ logger = logging.getLogger("app.routers.reports")
 router = APIRouter(prefix="/api/reports", tags=["Reports"])
 
 
+def _report_to_out(report) -> ReportOut:
+    from app.schemas.report import ReportPhotoOut
+    return ReportOut(
+        id=report.id,
+        report_number=report.report_number,
+        task_id=report.task_id,
+        farm_id=report.farm_id,
+        submitted_by=report.submitted_by,
+        visit_date=report.visit_date,
+        arrival_time=report.arrival_time,
+        departure_time=report.departure_time,
+        work_done=report.work_done,
+        observations=report.observations,
+        recommendations=report.recommendations,
+        status=report.status,
+        issues_found=report.issues_found,
+        next_visit_needed=report.next_visit_needed,
+        photos=[ReportPhotoOut.model_validate(p) for p in (report.photos or []) if not p.is_deleted],
+        created_at=report.created_at,
+        updated_at=report.updated_at,
+        submitted_by_name=report.submitted_by_user.name if report.submitted_by_user else None,
+        farm_name=report.farm.name if report.farm else None,
+        customer_name=report.farm.customer.name if report.farm and report.farm.customer else None,
+        task_type=report.task.task_type.value if report.task and report.task.task_type else None,
+        task_name=report.task.task_name if report.task else None,
+    )
+
+
 @router.get("/task-performance")
 def task_performance(
     db: Session = Depends(get_db),
@@ -122,7 +150,8 @@ def create_report(
 ):
     logger.info("POST /api/reports: user_id=%s farm_id=%s", current_user.id, payload.farm_id)
     report = report_service.create_report(db, payload, current_user)
-    return APIResponse.ok(data=ReportOut.model_validate(report))
+    report = report_service._reload(db, report.id)
+    return APIResponse.ok(data=_report_to_out(report))
 
 
 @router.post("/{report_id}/photos", response_model=APIResponse[ReportPhotoOut])
@@ -152,7 +181,7 @@ def farm_reports(
         raise HTTPException(status_code=403, detail="Only admins can view deleted records")
     reports, total = report_service.get_farm_reports(db, farm_id, p.skip, p.size, include_deleted=include_deleted)
     return PaginatedResponse(
-        data=[ReportOut.model_validate(r) for r in reports],
+        data=[_report_to_out(r) for r in reports],
         total=total, page=p.page, size=p.size, pages=p.pages(total),
     )
 
@@ -161,7 +190,7 @@ def farm_reports(
 def get_report(report_id: uuid.UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     logger.info("GET /api/reports/%s: user_id=%s", report_id, current_user.id)
     report = report_service.get_report(db, report_id, current_user)
-    return APIResponse.ok(data=ReportOut.model_validate(report))
+    return APIResponse.ok(data=_report_to_out(report))
 
 
 @router.delete("/{report_id}", response_model=APIResponse)

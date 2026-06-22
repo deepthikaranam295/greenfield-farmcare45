@@ -1,14 +1,32 @@
 import logging
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from fastapi import HTTPException, UploadFile
 from app.models.report import FieldReport, ReportPhoto
+from app.models.farm import Farm
 from app.models.user import User, UserRole
 from app.schemas.report import ReportCreate
 from app.services.s3_service import upload_file_to_s3
 
 logger = logging.getLogger("app.services.report")
+
+
+def _with_relations(q):
+    return q.options(
+        joinedload(FieldReport.submitted_by_user),
+        joinedload(FieldReport.farm).joinedload(Farm.customer),
+        joinedload(FieldReport.task),
+        joinedload(FieldReport.photos),
+    )
+
+
+def _reload(db: Session, report_id: uuid.UUID) -> FieldReport:
+    return _with_relations(
+        db.query(FieldReport).filter(
+            FieldReport.id == report_id, FieldReport.is_deleted == False
+        )
+    ).first()
 
 
 def create_report(db: Session, payload: ReportCreate, current_user: User) -> FieldReport:
@@ -23,9 +41,11 @@ def create_report(db: Session, payload: ReportCreate, current_user: User) -> Fie
 
 def get_report(db: Session, report_id: uuid.UUID, current_user: User) -> FieldReport:
     logger.info("get_report: report_id=%s user_id=%s", report_id, current_user.id)
-    report = db.query(FieldReport).filter(
-        FieldReport.id == report_id,
-        FieldReport.is_deleted == False,
+    report = _with_relations(
+        db.query(FieldReport).filter(
+            FieldReport.id == report_id,
+            FieldReport.is_deleted == False,
+        )
     ).first()
     if not report:
         logger.warning("get_report: not found report_id=%s", report_id)
@@ -53,7 +73,8 @@ def get_farm_reports(
         q = q.filter(FieldReport.is_deleted == False)
     total = q.count()
     logger.info("get_farm_reports: returning total=%d", total)
-    return q.offset(skip).limit(limit).all(), total
+    rows = _with_relations(q.order_by(FieldReport.visit_date.desc())).offset(skip).limit(limit).all()
+    return rows, total
 
 
 async def add_photo(
