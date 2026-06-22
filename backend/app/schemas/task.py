@@ -45,6 +45,7 @@ class TaskStatusUpdate(BaseModel):
 
 class TaskOut(BaseModel):
     id: uuid.UUID
+    task_number: Optional[int] = None
     task_name: Optional[str] = None
     farm_id: uuid.UUID
     customer_id: Optional[uuid.UUID] = None
@@ -60,5 +61,9 @@ class TaskOut(BaseModel):
     notes: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    # Enriched from joins — populated by _task_to_out() in router
+    customer_name: Optional[str] = None
+    farm_name: Optional[str] = None
+    assigned_field_team_name: Optional[str] = None
 
     model_config = {"from_attributes": True}

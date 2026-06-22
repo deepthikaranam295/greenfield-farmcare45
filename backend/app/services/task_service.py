@@ -1,14 +1,30 @@
 import logging
 import uuid
 from datetime import datetime, timezone, date as date_type
-from sqlalchemy.orm import Session
-from sqlalchemy import case
+from typing import Optional
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import case, or_
 from fastapi import HTTPException
 from app.models.task import Task, TaskStatus, TaskPriority
 from app.models.user import User, UserRole
+from app.models.farm import Farm
 from app.schemas.task import TaskCreate, TaskUpdate, TaskStatusUpdate, ServiceRequestCreate
 
 logger = logging.getLogger("app.services.task")
+
+
+def _with_relations(q):
+    """Attach eager-load options for farm, customer, assignee."""
+    return q.options(
+        joinedload(Task.farm),
+        joinedload(Task.customer),
+        joinedload(Task.assignee),
+    )
+
+
+def _reload(db: Session, task_id) -> Task:
+    """Reload a single task with all relationships after a write."""
+    return _with_relations(db.query(Task)).filter(Task.id == task_id).first()
 
 
 def create_task(db: Session, payload: TaskCreate, current_user: User) -> Task:
@@ -17,17 +33,15 @@ def create_task(db: Session, payload: TaskCreate, current_user: User) -> Task:
     planned_start = data.pop("planned_start_date", None)
     task = Task(**data)
     task.planned_start_date = planned_start
-    task.scheduled_date = planned_start  # backwards compat column
+    task.scheduled_date = planned_start
     task.status = TaskStatus.pending
     db.add(task)
     db.commit()
-    db.refresh(task)
     logger.info("create_task: success task_id=%s", task.id)
-    return task
+    return _reload(db, task.id)
 
 
 def create_service_request(db: Session, payload: ServiceRequestCreate, current_user: User) -> Task:
-    """Customer submits a service request — creates task with status=requested."""
     logger.info("create_service_request: user_id=%s farm_id=%s type=%s", current_user.id, payload.farm_id, payload.task_type)
     task = Task(
         farm_id=payload.farm_id,
@@ -42,29 +56,23 @@ def create_service_request(db: Session, payload: ServiceRequestCreate, current_u
     )
     db.add(task)
     db.commit()
-    db.refresh(task)
     logger.info("create_service_request: success task_id=%s", task.id)
-    return task
+    return _reload(db, task.id)
 
 
 def get_task(db: Session, task_id: uuid.UUID, current_user: User) -> Task:
     logger.info("get_task: task_id=%s user_id=%s", task_id, current_user.id)
-    task = db.query(Task).filter(Task.id == task_id, Task.is_deleted == False).first()
+    task = _with_relations(db.query(Task)).filter(Task.id == task_id, Task.is_deleted == False).first()
     if not task:
-        logger.warning("get_task: not found task_id=%s", task_id)
         raise HTTPException(status_code=404, detail="Task not found")
     if current_user.role == UserRole.field_team and task.assigned_to != current_user.id:
-        logger.warning("get_task: access denied task_id=%s user_id=%s", task_id, current_user.id)
         raise HTTPException(status_code=403, detail="Access denied")
     if current_user.role == UserRole.customer and task.customer_id != current_user.id:
-        logger.warning("get_task: customer access denied task_id=%s user_id=%s", task_id, current_user.id)
         raise HTTPException(status_code=403, detail="Access denied")
-    logger.info("get_task: found task_id=%s", task.id)
     return task
 
 
 def update_task(db: Session, task_id: uuid.UUID, payload: TaskUpdate, current_user: User) -> Task:
-    """Admin edits task — can reassign, change dates, cancel, etc."""
     logger.info("update_task: task_id=%s user_id=%s", task_id, current_user.id)
     task = db.query(Task).filter(Task.id == task_id, Task.is_deleted == False).first()
     if not task:
@@ -75,16 +83,20 @@ def update_task(db: Session, task_id: uuid.UUID, payload: TaskUpdate, current_us
     for field, value in updates.items():
         setattr(task, field, value)
     db.commit()
-    db.refresh(task)
     logger.info("update_task: success task_id=%s", task_id)
-    return task
+    return _reload(db, task.id)
 
 
 def update_task_status(db: Session, task_id: uuid.UUID, payload: TaskStatusUpdate, current_user: User) -> Task:
     logger.info("update_task_status: task_id=%s user_id=%s status=%s", task_id, current_user.id, payload.status)
-    task = get_task(db, task_id, current_user)
+    task = db.query(Task).filter(Task.id == task_id, Task.is_deleted == False).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    if current_user.role == UserRole.field_team and task.assigned_to != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    if current_user.role == UserRole.customer and task.customer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
 
-    # Field team can only move to in_progress or completed
     if current_user.role == UserRole.field_team and payload.status not in (
         TaskStatus.pending, TaskStatus.in_progress, TaskStatus.completed
     ):
@@ -105,9 +117,8 @@ def update_task_status(db: Session, task_id: uuid.UUID, payload: TaskStatusUpdat
             task.delay_days = (task.actual_end_date - task.planned_end_date).days
 
     db.commit()
-    db.refresh(task)
     logger.info("update_task_status: success task_id=%s", task.id)
-    return task
+    return _reload(db, task.id)
 
 
 def get_my_tasks(
@@ -117,13 +128,17 @@ def get_my_tasks(
     limit: int = 20,
     include_deleted: bool = False,
     sort_by: str = "planned_end_date",
-    status_filter: str = None,
+    status_filter: Optional[str] = None,
+    search: Optional[str] = None,
+    customer_id_filter: Optional[uuid.UUID] = None,
+    farm_id_filter: Optional[uuid.UUID] = None,
+    assigned_to_filter: Optional[uuid.UUID] = None,
+    priority_filter: Optional[str] = None,
 ) -> tuple[list[Task], int]:
-    logger.info("get_my_tasks: user_id=%s role=%s", current_user.id, current_user.role)
-    q = db.query(Task)
+    logger.info("get_my_tasks: user_id=%s role=%s search=%s", current_user.id, current_user.role, search)
+    q = _with_relations(db.query(Task))
 
     if current_user.role == UserRole.admin:
-        # Admin sees all tasks that are not 'requested' (those go to service_requests endpoint)
         q = q.filter(Task.status != TaskStatus.requested)
     elif current_user.role == UserRole.field_team:
         q = q.filter(Task.assigned_to == current_user.id)
@@ -132,6 +147,22 @@ def get_my_tasks(
         q = q.filter(Task.is_deleted == False)
     if status_filter:
         q = q.filter(Task.status == status_filter)
+    if customer_id_filter:
+        q = q.filter(Task.customer_id == customer_id_filter)
+    if farm_id_filter:
+        q = q.filter(Task.farm_id == farm_id_filter)
+    if assigned_to_filter:
+        q = q.filter(Task.assigned_to == assigned_to_filter)
+    if priority_filter:
+        q = q.filter(Task.priority == priority_filter)
+    if search:
+        term = f"%{search.strip()}%"
+        q = q.filter(or_(
+            Task.task_name.ilike(term),
+            Task.farm.has(Farm.name.ilike(term)),
+            Task.customer.has(User.name.ilike(term)),
+            Task.assignee.has(User.name.ilike(term)),
+        ))
 
     priority_order = case(
         (Task.priority == TaskPriority.high, 1),
@@ -148,8 +179,35 @@ def get_my_tasks(
     else:
         q = q.order_by(Task.planned_end_date.asc().nulls_last(), priority_order)
 
-    total = q.count()
-    logger.info("get_my_tasks: returning total=%d", total)
+    # Count without joinedload to avoid duplicate rows
+    count_q = db.query(Task)
+    if current_user.role == UserRole.admin:
+        count_q = count_q.filter(Task.status != TaskStatus.requested)
+    elif current_user.role == UserRole.field_team:
+        count_q = count_q.filter(Task.assigned_to == current_user.id)
+    if not include_deleted:
+        count_q = count_q.filter(Task.is_deleted == False)
+    if status_filter:
+        count_q = count_q.filter(Task.status == status_filter)
+    if customer_id_filter:
+        count_q = count_q.filter(Task.customer_id == customer_id_filter)
+    if farm_id_filter:
+        count_q = count_q.filter(Task.farm_id == farm_id_filter)
+    if assigned_to_filter:
+        count_q = count_q.filter(Task.assigned_to == assigned_to_filter)
+    if priority_filter:
+        count_q = count_q.filter(Task.priority == priority_filter)
+    if search:
+        term = f"%{search.strip()}%"
+        count_q = count_q.filter(or_(
+            Task.task_name.ilike(term),
+            Task.farm.has(Farm.name.ilike(term)),
+            Task.customer.has(User.name.ilike(term)),
+            Task.assignee.has(User.name.ilike(term)),
+        ))
+    total = count_q.count()
+
+    logger.info("get_my_tasks: total=%d", total)
     return q.offset(skip).limit(limit).all(), total
 
 
@@ -158,12 +216,11 @@ def get_service_requests(
     skip: int = 0,
     limit: int = 20,
 ) -> tuple[list[Task], int]:
-    """Admin retrieves pending customer service requests."""
-    q = db.query(Task).filter(
+    q = _with_relations(db.query(Task)).filter(
         Task.status == TaskStatus.requested,
         Task.is_deleted == False,
     ).order_by(Task.created_at.desc())
-    total = q.count()
+    total = db.query(Task).filter(Task.status == TaskStatus.requested, Task.is_deleted == False).count()
     return q.offset(skip).limit(limit).all(), total
 
 
@@ -172,17 +229,19 @@ def get_customer_tasks(
     current_user: User,
     skip: int = 0,
     limit: int = 50,
-    status_filter: str = None,
+    status_filter: Optional[str] = None,
 ) -> tuple[list[Task], int]:
-    """Customer retrieves their service requests and tasks."""
-    q = db.query(Task).filter(
+    q = _with_relations(db.query(Task)).filter(
         Task.customer_id == current_user.id,
         Task.is_deleted == False,
     )
     if status_filter:
         q = q.filter(Task.status == status_filter)
     q = q.order_by(Task.created_at.desc())
-    total = q.count()
+    count_q = db.query(Task).filter(Task.customer_id == current_user.id, Task.is_deleted == False)
+    if status_filter:
+        count_q = count_q.filter(Task.status == status_filter)
+    total = count_q.count()
     return q.offset(skip).limit(limit).all(), total
 
 
@@ -193,11 +252,14 @@ def get_farm_tasks(
     limit: int = 20,
     include_deleted: bool = False,
 ) -> tuple[list[Task], int]:
-    logger.info("get_farm_tasks: farm_id=%s skip=%d limit=%d", farm_id, skip, limit)
-    q = db.query(Task).filter(Task.farm_id == farm_id)
+    logger.info("get_farm_tasks: farm_id=%s", farm_id)
+    q = _with_relations(db.query(Task)).filter(Task.farm_id == farm_id)
     if not include_deleted:
         q = q.filter(Task.is_deleted == False)
-    total = q.count()
+    count_q = db.query(Task).filter(Task.farm_id == farm_id)
+    if not include_deleted:
+        count_q = count_q.filter(Task.is_deleted == False)
+    total = count_q.count()
     return q.offset(skip).limit(limit).all(), total
 
 

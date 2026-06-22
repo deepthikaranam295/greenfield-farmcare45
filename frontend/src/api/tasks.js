@@ -1,8 +1,13 @@
 import client from './client'
 
-export const getMyTasks = (page = 1, size = 20, sortBy = 'planned_end_date', statusFilter = null) => {
+export const getMyTasks = (page = 1, size = 20, sortBy = 'planned_end_date', statusFilter = null, filters = {}) => {
   const params = { page, size, sort_by: sortBy }
   if (statusFilter) params.status_filter = statusFilter
+  if (filters.search)     params.search      = filters.search
+  if (filters.customerId) params.customer_id = filters.customerId
+  if (filters.farmId)     params.farm_id     = filters.farmId
+  if (filters.assignedTo) params.assigned_to = filters.assignedTo
+  if (filters.priority)   params.priority    = filters.priority
   return client.get('/api/tasks/my-tasks', { params }).then(r => r.data)
 }
 

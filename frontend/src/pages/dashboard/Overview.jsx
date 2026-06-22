@@ -123,6 +123,8 @@ export default function Overview() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Task</th>
+                  <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden lg:table-cell">Customer</th>
+                  <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden lg:table-cell">Farm</th>
                   <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide">Status</th>
                   <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden sm:table-cell">Plan End</th>
                   <th className="text-left px-5 py-3 text-xs font-heading text-gray-500 uppercase tracking-wide hidden md:table-cell">Delay</th>
@@ -137,6 +139,8 @@ export default function Overview() {
                         <p className="capitalize">{task.task_name || task.task_type?.replace(/_/g, ' ')}</p>
                         {task.task_name && <p className="text-xs text-gray-400 capitalize">{task.task_type?.replace(/_/g, ' ')}</p>}
                       </td>
+                      <td className="px-5 py-3 text-xs text-gray-600 font-body hidden lg:table-cell">{task.customer_name || '—'}</td>
+                      <td className="px-5 py-3 text-xs text-gray-600 font-body hidden lg:table-cell">{task.farm_name || '—'}</td>
                       <td className="px-5 py-3"><Badge value={task.status} /></td>
                       <td className="px-5 py-3 text-gray-500 font-body text-xs hidden sm:table-cell">{task.planned_end_date || '—'}</td>
                       <td className="px-5 py-3 hidden md:table-cell">

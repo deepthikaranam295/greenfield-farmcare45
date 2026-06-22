@@ -1,5 +1,6 @@
 import logging
 import uuid
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -8,11 +9,38 @@ from app.schemas.common import APIResponse, PaginatedResponse
 from app.services import task_service
 from app.dependencies.auth import get_current_user, require_admin, require_admin_or_field, require_customer
 from app.models.user import User, UserRole
+from app.models.task import Task
 from app.utils.pagination import Pagination
 
 logger = logging.getLogger("app.routers.tasks")
 
 router = APIRouter(prefix="/api/tasks", tags=["Tasks"])
+
+
+def _task_to_out(task: Task) -> TaskOut:
+    """Convert ORM task (with eager-loaded relations) to TaskOut schema."""
+    return TaskOut(
+        id=task.id,
+        task_number=task.task_number,
+        task_name=task.task_name,
+        farm_id=task.farm_id,
+        customer_id=task.customer_id,
+        assigned_to=task.assigned_to,
+        task_type=task.task_type,
+        status=task.status,
+        priority=task.priority,
+        planned_start_date=task.planned_start_date,
+        planned_end_date=task.planned_end_date,
+        actual_start_date=task.actual_start_date,
+        actual_end_date=task.actual_end_date,
+        delay_days=task.delay_days,
+        notes=task.notes,
+        created_at=task.created_at,
+        updated_at=task.updated_at,
+        customer_name=task.customer.name if task.customer else None,
+        farm_name=task.farm.name if task.farm else None,
+        assigned_field_team_name=task.assignee.name if task.assignee else None,
+    )
 
 
 @router.post("", response_model=APIResponse[TaskOut])
@@ -23,8 +51,7 @@ def create_task(
 ):
     logger.info("POST /api/tasks: user_id=%s type=%s", current_user.id, payload.task_type)
     task = task_service.create_task(db, payload, current_user)
-    logger.info("POST /api/tasks: success task_id=%s", task.id)
-    return APIResponse.ok(data=TaskOut.model_validate(task))
+    return APIResponse.ok(data=_task_to_out(task))
 
 
 @router.put("/{task_id}", response_model=APIResponse[TaskOut])
@@ -36,8 +63,7 @@ def update_task(
 ):
     logger.info("PUT /api/tasks/%s: user_id=%s", task_id, current_user.id)
     task = task_service.update_task(db, task_id, payload, current_user)
-    logger.info("PUT /api/tasks/%s: success", task_id)
-    return APIResponse.ok(data=TaskOut.model_validate(task))
+    return APIResponse.ok(data=_task_to_out(task))
 
 
 @router.get("/my-tasks", response_model=PaginatedResponse[TaskOut])
@@ -47,7 +73,12 @@ def my_tasks(
     p: Pagination = Depends(),
     include_deleted: bool = Query(False),
     sort_by: str = Query("planned_end_date"),
-    status_filter: str = Query(None),
+    status_filter: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    customer_id: Optional[uuid.UUID] = Query(None),
+    farm_id: Optional[uuid.UUID] = Query(None),
+    assigned_to: Optional[uuid.UUID] = Query(None),
+    priority: Optional[str] = Query(None),
 ):
     if include_deleted and current_user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Only admins can view deleted records")
@@ -56,9 +87,14 @@ def my_tasks(
         include_deleted=include_deleted,
         sort_by=sort_by,
         status_filter=status_filter,
+        search=search,
+        customer_id_filter=customer_id,
+        farm_id_filter=farm_id,
+        assigned_to_filter=assigned_to,
+        priority_filter=priority,
     )
     return PaginatedResponse(
-        data=[TaskOut.model_validate(t) for t in tasks],
+        data=[_task_to_out(t) for t in tasks],
         total=total, page=p.page, size=p.size, pages=p.pages(total),
     )
 
@@ -69,10 +105,9 @@ def list_service_requests(
     _: User = Depends(require_admin),
     p: Pagination = Depends(),
 ):
-    """Admin retrieves pending customer service requests."""
     tasks, total = task_service.get_service_requests(db, p.skip, p.size)
     return PaginatedResponse(
-        data=[TaskOut.model_validate(t) for t in tasks],
+        data=[_task_to_out(t) for t in tasks],
         total=total, page=p.page, size=p.size, pages=p.pages(total),
     )
 
@@ -83,10 +118,9 @@ def create_service_request(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_customer),
 ):
-    """Customer submits a service request."""
     logger.info("POST /api/tasks/service-requests: user_id=%s type=%s", current_user.id, payload.task_type)
     task = task_service.create_service_request(db, payload, current_user)
-    return APIResponse.ok(data=TaskOut.model_validate(task), message="Service request submitted successfully")
+    return APIResponse.ok(data=_task_to_out(task), message="Service request submitted successfully")
 
 
 @router.get("/customer-tasks", response_model=PaginatedResponse[TaskOut])
@@ -94,12 +128,11 @@ def customer_tasks(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_customer),
     p: Pagination = Depends(),
-    status_filter: str = Query(None),
+    status_filter: Optional[str] = Query(None),
 ):
-    """Customer retrieves their service requests and farm tasks."""
     tasks, total = task_service.get_customer_tasks(db, current_user, p.skip, p.size, status_filter)
     return PaginatedResponse(
-        data=[TaskOut.model_validate(t) for t in tasks],
+        data=[_task_to_out(t) for t in tasks],
         total=total, page=p.page, size=p.size, pages=p.pages(total),
     )
 
@@ -111,7 +144,7 @@ def get_task(
     current_user: User = Depends(get_current_user),
 ):
     task = task_service.get_task(db, task_id, current_user)
-    return APIResponse.ok(data=TaskOut.model_validate(task))
+    return APIResponse.ok(data=_task_to_out(task))
 
 
 @router.put("/{task_id}/status", response_model=APIResponse[TaskOut])
@@ -123,7 +156,7 @@ def update_task_status(
 ):
     logger.info("PUT /api/tasks/%s/status: user_id=%s status=%s", task_id, current_user.id, payload.status)
     task = task_service.update_task_status(db, task_id, payload, current_user)
-    return APIResponse.ok(data=TaskOut.model_validate(task))
+    return APIResponse.ok(data=_task_to_out(task))
 
 
 @router.delete("/{task_id}", response_model=APIResponse)
