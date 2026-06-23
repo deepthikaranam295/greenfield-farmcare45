@@ -287,7 +287,6 @@ export default function FarmDetail() {
         <FieldMapPanel
           farm={farm}
           isAdmin={isAdmin}
-          mapLink={mapLink}
           onFarmUpdate={updated => setFarm(updated)}
         />
       )}
@@ -488,278 +487,214 @@ function fmtArea(m2) {
   return `${acres.toFixed(2)} acres`
 }
 
-function FieldMapPanel({ farm, isAdmin, mapLink, onFarmUpdate }) {
-  const mapDivRef  = useRef(null)
-  const mapObjRef  = useRef(null)
-  const drawnRef   = useRef(null)
+function FieldMapPanel({ farm, isAdmin, onFarmUpdate }) {
+  const [coordsText, setCoordsText] = useState(() => {
+    if (!farm.boundary_geojson) return ''
+    try {
+      const gj = JSON.parse(farm.boundary_geojson)
+      return gj.coordinates[0].slice(0, -1)
+        .map(([lng, lat]) => `${lat}, ${lng}`).join('\n')
+    } catch { return '' }
+  })
+  const [coordErr, setCoordErr]   = useState('')
+  const [boundary, setBoundary]   = useState(() => {
+    if (!farm.boundary_geojson) return null
+    try { return JSON.parse(farm.boundary_geojson) } catch { return null }
+  })
+  const [areaM2, setAreaM2]       = useState(() => {
+    if (!farm.boundary_geojson) return null
+    try {
+      const gj = JSON.parse(farm.boundary_geojson)
+      return geodesicArea(gj.coordinates[0].slice(0,-1).map(([lng,lat])=>({lat,lng})))
+    } catch { return null }
+  })
+  const [saving, setSaving]       = useState(false)
+  const [saveErr, setSaveErr]     = useState('')
+  const [saveOk, setSaveOk]       = useState(false)
 
-  const [areaM2, setAreaM2]         = useState(null)
-  const [pendingGJ, setPendingGJ]   = useState(null)
-  const [saving, setSaving]         = useState(false)
-  const [saveErr, setSaveErr]       = useState('')
-  const [saveOk, setSaveOk]         = useState(false)
-  const [coordsText, setCoordsText] = useState('')
-  const [coordErr, setCoordErr]     = useState('')
-  const [showCoords, setShowCoords] = useState(false)
-
-  useEffect(() => {
-    const L = window.L
-    if (!L || !mapDivRef.current) return
-
-    // Destroy previous instance if re-rendering
-    if (mapObjRef.current) { mapObjRef.current.remove(); mapObjRef.current = null }
-
-    const center = farm.gps_lat && farm.gps_lng ? [farm.gps_lat, farm.gps_lng] : [14.68, 77.61]
-    const map = L.map(mapDivRef.current).setView(center, farm.boundary_geojson ? 14 : (farm.gps_lat ? 15 : 10))
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: 19,
-    }).addTo(map)
-
-    // Draw saved boundary if present
-    if (farm.boundary_geojson) {
-      try {
-        const parsed = JSON.parse(farm.boundary_geojson)
-        const layer = L.geoJSON(parsed, {
-          style: { color: '#4d7c0f', weight: 3, fillColor: '#84cc16', fillOpacity: 0.25 }
-        }).addTo(map)
-        map.fitBounds(layer.getBounds(), { padding: [40, 40] })
-        const coords = parsed.coordinates?.[0]
-        if (coords) setAreaM2(geodesicArea(coords.map(([lng, lat]) => ({ lat, lng }))))
-      } catch {}
-    } else if (farm.gps_lat && farm.gps_lng) {
-      L.marker([farm.gps_lat, farm.gps_lng]).addTo(map)
+  const parseLines = () => {
+    setCoordErr('')
+    const lines = coordsText.trim().split('\n').map(l => l.trim()).filter(Boolean)
+    if (lines.length < 3) { setCoordErr('Need at least 3 coordinate points to form a polygon.'); return null }
+    const latlngs = []
+    for (let i = 0; i < lines.length; i++) {
+      const parts = lines[i].split(/[\s,]+/).filter(Boolean)
+      if (parts.length < 2) { setCoordErr(`Line ${i+1}: expected "Latitude, Longitude"`); return null }
+      const lat = parseFloat(parts[0]), lng = parseFloat(parts[1])
+      if (isNaN(lat) || isNaN(lng)) { setCoordErr(`Line ${i+1}: not valid numbers`); return null }
+      if (lat < -90 || lat > 90)   { setCoordErr(`Line ${i+1}: latitude ${lat} out of range`); return null }
+      if (lng < -180 || lng > 180) { setCoordErr(`Line ${i+1}: longitude ${lng} out of range`); return null }
+      latlngs.push({ lat, lng })
     }
+    return latlngs
+  }
 
-    // Add Geoman drawing controls for admin
-    if (isAdmin && map.pm) {
-      map.pm.addControls({
-        position: 'topleft',
-        drawMarker: false,
-        drawCircle: false,
-        drawCircleMarker: false,
-        drawPolyline: false,
-        drawRectangle: true,
-        drawPolygon: true,
-        editMode: true,
-        dragMode: false,
-        cutPolygon: false,
-        removalMode: true,
-      })
-
-      map.on('pm:create', ({ layer }) => {
-        if (drawnRef.current) drawnRef.current.remove()
-        drawnRef.current = layer
-        const gj = layer.toGeoJSON()
-        const latlngs = layer.getLatLngs()[0]
-        const m2 = geodesicArea(latlngs)
-        setAreaM2(m2)
-        setPendingGJ(JSON.stringify(gj.geometry))
-        setSaveOk(false)
-      })
-
-      map.on('pm:edit', ({ layer }) => {
-        if (!layer.toGeoJSON) return
-        const gj = layer.toGeoJSON()
-        const latlngs = layer.getLatLngs()[0]
-        const m2 = geodesicArea(latlngs)
-        setAreaM2(m2)
-        setPendingGJ(JSON.stringify(gj.geometry))
-        setSaveOk(false)
-      })
-
-      map.on('pm:remove', () => {
-        drawnRef.current = null
-        setPendingGJ(null)
-        setAreaM2(farm.boundary_geojson
-          ? (() => { try { const p = JSON.parse(farm.boundary_geojson); return geodesicArea(p.coordinates[0].map(([lng,lat])=>({lat,lng}))) } catch { return null } })()
-          : null)
-        setSaveOk(false)
-      })
-    }
-
-    mapObjRef.current = map
-    return () => { if (mapObjRef.current) { mapObjRef.current.remove(); mapObjRef.current = null } }
-  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
+  const handleGenerate = () => {
+    const pts = parseLines()
+    if (!pts) return
+    const ring = [...pts, pts[0]].map(({ lat, lng }) => [lng, lat])
+    const gj = { type: 'Polygon', coordinates: [ring] }
+    setBoundary(gj)
+    setAreaM2(geodesicArea(pts))
+    setSaveOk(false)
+  }
 
   const handleSave = async () => {
-    if (!pendingGJ) return
+    if (!boundary) return
     setSaving(true); setSaveErr(''); setSaveOk(false)
     try {
-      const coords = JSON.parse(pendingGJ).coordinates[0]
-      const avgLat = coords.reduce((s, [, lat]) => s + lat, 0) / coords.length
-      const avgLng = coords.reduce((s, [lng]) => s + lng, 0) / coords.length
-      const acres  = areaM2 ? parseFloat((areaM2 / 4046.86).toFixed(2)) : farm.size_acres
-
+      const coords = boundary.coordinates[0]
+      const avgLat = coords.reduce((s,[,lat]) => s+lat, 0) / coords.length
+      const avgLng = coords.reduce((s,[lng]) => s+lng, 0) / coords.length
+      const acres  = areaM2 ? parseFloat((areaM2/4046.86).toFixed(2)) : farm.size_acres
       const updated = await updateFarm(farm.id, {
-        boundary_geojson: pendingGJ,
+        boundary_geojson: JSON.stringify(boundary),
         gps_lat: farm.gps_lat || avgLat,
         gps_lng: farm.gps_lng || avgLng,
         size_acres: acres,
       })
       onFarmUpdate(updated)
-      setPendingGJ(null)
       setSaveOk(true)
-    } catch {
-      setSaveErr('Failed to save boundary. Please try again.')
-    } finally { setSaving(false) }
+    } catch { setSaveErr('Failed to save. Please try again.') }
+    finally { setSaving(false) }
   }
 
-  const hasBoundary = !!farm.boundary_geojson
+  // Build OSM iframe src + SVG polygon from boundary
+  let mapSrc, svgPoints = null
+  const VW = 1000, VH = 480
 
-  const plotFromCoords = () => {
-    setCoordErr('')
-    const L = window.L
-    if (!L || !mapObjRef.current) return
-
-    // Parse lines — accept "lat, lng", "lat lng", or "lat,lng"
-    const lines = coordsText.trim().split('\n').map(l => l.trim()).filter(Boolean)
-    if (lines.length < 3) { setCoordErr('At least 3 coordinate points are needed to form a polygon.'); return }
-
-    const latlngs = []
-    for (let i = 0; i < lines.length; i++) {
-      const parts = lines[i].split(/[\s,]+/).filter(Boolean)
-      if (parts.length < 2) { setCoordErr(`Line ${i + 1}: "${lines[i]}" — expected "lat, lng"`); return }
-      const lat = parseFloat(parts[0])
-      const lng = parseFloat(parts[1])
-      if (isNaN(lat) || isNaN(lng)) { setCoordErr(`Line ${i + 1}: "${lines[i]}" — not valid numbers`); return }
-      if (lat < -90 || lat > 90)   { setCoordErr(`Line ${i + 1}: latitude ${lat} is out of range (-90 to 90)`); return }
-      if (lng < -180 || lng > 180) { setCoordErr(`Line ${i + 1}: longitude ${lng} is out of range (-180 to 180)`); return }
-      latlngs.push({ lat, lng })
-    }
-
-    // Remove old drawn layer
-    if (drawnRef.current) { drawnRef.current.remove(); drawnRef.current = null }
-
-    // Draw polygon on map
-    const poly = L.polygon(latlngs, {
-      color: '#4d7c0f', weight: 3, fillColor: '#84cc16', fillOpacity: 0.25,
-    }).addTo(mapObjRef.current)
-
-    mapObjRef.current.fitBounds(poly.getBounds(), { padding: [40, 40] })
-    drawnRef.current = poly
-
-    const m2 = geodesicArea(latlngs)
-    setAreaM2(m2)
-
-    // Build GeoJSON Polygon geometry
-    const ring = [...latlngs, latlngs[0]].map(({ lat, lng }) => [lng, lat])
-    setPendingGJ(JSON.stringify({ type: 'Polygon', coordinates: [ring] }))
-    setSaveOk(false)
+  if (boundary) {
+    const coords  = boundary.coordinates[0]
+    const lats    = coords.map(([,lat]) => lat)
+    const lngs    = coords.map(([lng]) => lng)
+    const minLat  = Math.min(...lats), maxLat = Math.max(...lats)
+    const minLng  = Math.min(...lngs), maxLng = Math.max(...lngs)
+    const padLat  = Math.max((maxLat-minLat)*0.25, 0.002)
+    const padLng  = Math.max((maxLng-minLng)*0.25, 0.002)
+    const west=minLng-padLng, east=maxLng+padLng, south=minLat-padLat, north=maxLat+padLat
+    mapSrc   = `https://www.openstreetmap.org/export/embed.html?bbox=${west},${south},${east},${north}&layer=mapnik`
+    svgPoints = coords.map(([lng,lat]) => {
+      const x = ((lng-west)/(east-west))*VW
+      const y = ((north-lat)/(north-south))*VH
+      return `${x},${y}`
+    }).join(' ')
+  } else if (farm.gps_lat && farm.gps_lng) {
+    const lat=farm.gps_lat, lng=farm.gps_lng
+    mapSrc = `https://www.openstreetmap.org/export/embed.html?bbox=${lng-0.02},${lat-0.02},${lng+0.02},${lat+0.02}&layer=mapnik&marker=${lat},${lng}`
+  } else {
+    mapSrc = `https://www.openstreetmap.org/export/embed.html?bbox=77.4,14.5,77.8,14.9&layer=mapnik`
   }
 
   return (
-    <div className="space-y-3">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div>
-          <h2 className="font-heading font-bold text-lg text-gf-dark">Field Map</h2>
-          {areaM2 != null && (
-            <p className="text-sm text-gf-mid font-body font-semibold mt-0.5">
-              Area: {fmtArea(areaM2)}
+    <div className="space-y-4">
+      <h2 className="font-heading font-bold text-lg text-gf-dark">Field Map</h2>
+
+      {/* Coordinate entry form */}
+      {isAdmin && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+          <div>
+            <h3 className="font-heading font-semibold text-gf-dark">Enter Farm Boundary Coordinates</h3>
+            <p className="text-xs text-gray-500 font-body mt-1">
+              Enter each corner of the farm — one coordinate per line in{' '}
+              <strong>Latitude, Longitude</strong> format. Minimum 3 points.
+              Get coordinates from Google Maps: right-click on the map → "What's here?".
             </p>
+          </div>
+
+          <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono text-gray-400 select-all leading-5">
+            14.6832, 77.6101<br/>
+            14.6845, 77.6118<br/>
+            14.6838, 77.6130<br/>
+            14.6819, 77.6115
+          </div>
+
+          <textarea
+            value={coordsText}
+            onChange={e => { setCoordsText(e.target.value); setCoordErr('') }}
+            rows={6}
+            placeholder={"14.6832, 77.6101\n14.6845, 77.6118\n14.6838, 77.6130\n14.6819, 77.6115"}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gf-mid resize-y"
+          />
+
+          {coordErr && (
+            <p className="text-xs text-red-600 font-body bg-red-50 border border-red-200 rounded-lg px-3 py-2">{coordErr}</p>
           )}
+
+          <button
+            onClick={handleGenerate}
+            disabled={!coordsText.trim()}
+            className="bg-gf-mid text-white font-heading font-semibold px-5 py-2 rounded-lg text-sm hover:bg-gf-dark disabled:opacity-50 transition-colors"
+          >
+            Generate Farm Plot Map
+          </button>
         </div>
-        <a href={mapLink} target="_blank" rel="noopener noreferrer"
-          className="text-xs text-gf-mid font-body hover:underline">
-          Open in OpenStreetMap →
-        </a>
+      )}
+
+      {/* Map with SVG overlay */}
+      <div className="relative rounded-2xl overflow-hidden border border-gray-200 shadow-sm" style={{ height: 480 }}>
+        <iframe
+          key={mapSrc}
+          title="Farm boundary map"
+          src={mapSrc}
+          width="100%"
+          height="100%"
+          style={{ border: 0, display: 'block' }}
+          allowFullScreen
+        />
+        {svgPoints && (
+          <svg
+            viewBox={`0 0 ${VW} ${VH}`}
+            preserveAspectRatio="none"
+            className="absolute inset-0 w-full h-full pointer-events-none"
+          >
+            <polygon
+              points={svgPoints}
+              fill="rgba(132,204,22,0.22)"
+              stroke="#3f6212"
+              strokeWidth="4"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
       </div>
 
-      {/* Info banners */}
-      {isAdmin && !hasBoundary && (
-        <p className="text-xs text-blue-700 font-body bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
-          Draw a polygon on the map using the toolbar on the left, <strong>or</strong> enter GPS coordinates below to auto-generate the boundary.
-        </p>
+      {/* Area stats */}
+      {areaM2 != null && (
+        <div className="flex flex-wrap gap-4 bg-gf-pale rounded-xl px-5 py-3">
+          <div>
+            <p className="text-xs text-gray-500 font-body uppercase tracking-wide">Calculated Area</p>
+            <p className="font-heading font-bold text-gf-dark text-xl">{fmtArea(areaM2)}</p>
+          </div>
+          <div className="border-l border-gray-300 pl-4">
+            <p className="text-xs text-gray-500 font-body uppercase tracking-wide">In m²</p>
+            <p className="font-heading font-semibold text-gray-700 text-xl">{Math.round(areaM2).toLocaleString('en-IN')} m²</p>
+          </div>
+        </div>
       )}
-      {!hasBoundary && !isAdmin && (
+
+      {/* Feedback */}
+      {saveErr && <p className="text-xs text-red-600 font-body bg-red-50 border border-red-200 rounded-lg px-3 py-2">{saveErr}</p>}
+      {saveOk  && <p className="text-xs text-green-700 font-body bg-green-50 border border-green-200 rounded-lg px-3 py-2">Boundary saved — farm size updated to {areaM2 ? fmtArea(areaM2) : ''}.</p>}
+
+      {/* Save */}
+      {isAdmin && boundary && (
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="bg-gf-mid text-white font-heading font-semibold px-5 py-2 rounded-lg text-sm hover:bg-gf-dark disabled:opacity-60 transition-colors"
+        >
+          {saving ? 'Saving…' : 'Save Farm Boundary'}
+        </button>
+      )}
+
+      {!isAdmin && !boundary && (
         <p className="text-xs text-amber-600 font-body bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-          No boundary has been drawn for this farm yet.
+          Farm boundary not set yet. Contact admin to add coordinates.
         </p>
-      )}
-      {saveErr && (
-        <p className="text-xs text-red-600 font-body bg-red-50 border border-red-200 rounded-lg px-3 py-2">{saveErr}</p>
-      )}
-      {saveOk && (
-        <p className="text-xs text-green-700 font-body bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-          Boundary saved successfully.
-        </p>
-      )}
-
-      {/* Map */}
-      <div ref={mapDivRef} className="rounded-2xl overflow-hidden border border-gray-200 shadow-sm" style={{ height: 480 }} />
-
-      {/* Coordinate entry panel */}
-      {isAdmin && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <button
-            onClick={() => setShowCoords(v => !v)}
-            className="w-full flex items-center justify-between px-5 py-3 text-sm font-heading font-semibold text-gf-dark hover:bg-gray-50 transition-colors"
-          >
-            <span>Enter Boundary Coordinates (GPS Survey)</span>
-            <span className="text-gray-400 text-xs font-body">{showCoords ? '▲ Hide' : '▼ Show'}</span>
-          </button>
-
-          {showCoords && (
-            <div className="px-5 pb-5 space-y-3 border-t border-gray-100">
-              <p className="text-xs text-gray-500 font-body pt-3">
-                Paste one coordinate per line in <strong>Latitude, Longitude</strong> format. At least 3 points needed.
-                You can copy these from Google Maps (right-click a point → copy coordinates).
-              </p>
-
-              {/* Example hint */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 font-mono text-xs text-gray-500 select-all">
-                14.6832, 77.6101<br />
-                14.6845, 77.6118<br />
-                14.6838, 77.6130<br />
-                14.6819, 77.6115
-              </div>
-
-              <textarea
-                value={coordsText}
-                onChange={e => { setCoordsText(e.target.value); setCoordErr('') }}
-                rows={6}
-                placeholder={'14.6832, 77.6101\n14.6845, 77.6118\n14.6838, 77.6130\n14.6819, 77.6115'}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gf-mid resize-y"
-              />
-
-              {coordErr && (
-                <p className="text-xs text-red-600 font-body bg-red-50 border border-red-200 rounded-lg px-3 py-2">{coordErr}</p>
-              )}
-
-              <button
-                onClick={plotFromCoords}
-                disabled={!coordsText.trim()}
-                className="bg-gf-mid text-white font-heading font-semibold px-5 py-2 rounded-lg text-sm hover:bg-gf-dark disabled:opacity-50 transition-colors"
-              >
-                Generate Boundary on Map
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Save button */}
-      {isAdmin && pendingGJ && (
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="bg-gf-mid text-white font-heading font-semibold px-5 py-2 rounded-lg text-sm hover:bg-gf-dark disabled:opacity-60 transition-colors"
-          >
-            {saving ? 'Saving…' : 'Save Boundary'}
-          </button>
-          {areaM2 != null && (
-            <span className="text-sm text-gray-500 font-body">
-              Calculated area: <strong>{fmtArea(areaM2)}</strong> — will update farm size field on save.
-            </span>
-          )}
-        </div>
       )}
 
       <p className="text-xs text-gray-400 font-body text-center">
-        Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="hover:underline">OpenStreetMap</a> contributors
+        Map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="hover:underline">OpenStreetMap</a> contributors
       </p>
     </div>
   )
