@@ -16,6 +16,7 @@ class ReportCreate(BaseModel):
     recommendations: Optional[str] = None
     issues_found: Optional[str] = None
     next_visit_needed: bool = False
+    status: Optional[ReportStatus] = None
 
 
 class ReportPhotoOut(BaseModel):

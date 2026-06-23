@@ -88,7 +88,7 @@ DECLARE
     v_rep3     UUID := uuid_generate_v4();
     v_count    INT;
 BEGIN
-    SELECT COUNT(*) INTO v_count FROM field_reports;
+    SELECT COUNT(*) INTO v_count FROM field_reports WHERE is_deleted = false;
     IF v_count >= 3 THEN RETURN; END IF;
 
     SELECT id INTO v_farm_id FROM farms

@@ -31,7 +31,11 @@ def _reload(db: Session, report_id: uuid.UUID) -> FieldReport:
 
 def create_report(db: Session, payload: ReportCreate, current_user: User) -> FieldReport:
     logger.info("create_report: farm_id=%s user_id=%s", payload.farm_id, current_user.id)
-    report = FieldReport(**payload.model_dump(), submitted_by=current_user.id)
+    data = payload.model_dump(exclude_none=True)
+    if "status" not in data:
+        from app.models.report import ReportStatus
+        data["status"] = ReportStatus.draft
+    report = FieldReport(**data, submitted_by=current_user.id)
     db.add(report)
     db.commit()
     db.refresh(report)
