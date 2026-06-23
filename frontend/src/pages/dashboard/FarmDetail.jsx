@@ -493,11 +493,14 @@ function FieldMapPanel({ farm, isAdmin, mapLink, onFarmUpdate }) {
   const mapObjRef  = useRef(null)
   const drawnRef   = useRef(null)
 
-  const [areaM2, setAreaM2]       = useState(null)
-  const [pendingGJ, setPendingGJ] = useState(null)
-  const [saving, setSaving]       = useState(false)
-  const [saveErr, setSaveErr]     = useState('')
-  const [saveOk, setSaveOk]       = useState(false)
+  const [areaM2, setAreaM2]         = useState(null)
+  const [pendingGJ, setPendingGJ]   = useState(null)
+  const [saving, setSaving]         = useState(false)
+  const [saveErr, setSaveErr]       = useState('')
+  const [saveOk, setSaveOk]         = useState(false)
+  const [coordsText, setCoordsText] = useState('')
+  const [coordErr, setCoordErr]     = useState('')
+  const [showCoords, setShowCoords] = useState(false)
 
   useEffect(() => {
     const L = window.L
@@ -605,6 +608,47 @@ function FieldMapPanel({ farm, isAdmin, mapLink, onFarmUpdate }) {
 
   const hasBoundary = !!farm.boundary_geojson
 
+  const plotFromCoords = () => {
+    setCoordErr('')
+    const L = window.L
+    if (!L || !mapObjRef.current) return
+
+    // Parse lines — accept "lat, lng", "lat lng", or "lat,lng"
+    const lines = coordsText.trim().split('\n').map(l => l.trim()).filter(Boolean)
+    if (lines.length < 3) { setCoordErr('At least 3 coordinate points are needed to form a polygon.'); return }
+
+    const latlngs = []
+    for (let i = 0; i < lines.length; i++) {
+      const parts = lines[i].split(/[\s,]+/).filter(Boolean)
+      if (parts.length < 2) { setCoordErr(`Line ${i + 1}: "${lines[i]}" — expected "lat, lng"`); return }
+      const lat = parseFloat(parts[0])
+      const lng = parseFloat(parts[1])
+      if (isNaN(lat) || isNaN(lng)) { setCoordErr(`Line ${i + 1}: "${lines[i]}" — not valid numbers`); return }
+      if (lat < -90 || lat > 90)   { setCoordErr(`Line ${i + 1}: latitude ${lat} is out of range (-90 to 90)`); return }
+      if (lng < -180 || lng > 180) { setCoordErr(`Line ${i + 1}: longitude ${lng} is out of range (-180 to 180)`); return }
+      latlngs.push({ lat, lng })
+    }
+
+    // Remove old drawn layer
+    if (drawnRef.current) { drawnRef.current.remove(); drawnRef.current = null }
+
+    // Draw polygon on map
+    const poly = L.polygon(latlngs, {
+      color: '#4d7c0f', weight: 3, fillColor: '#84cc16', fillOpacity: 0.25,
+    }).addTo(mapObjRef.current)
+
+    mapObjRef.current.fitBounds(poly.getBounds(), { padding: [40, 40] })
+    drawnRef.current = poly
+
+    const m2 = geodesicArea(latlngs)
+    setAreaM2(m2)
+
+    // Build GeoJSON Polygon geometry
+    const ring = [...latlngs, latlngs[0]].map(({ lat, lng }) => [lng, lat])
+    setPendingGJ(JSON.stringify({ type: 'Polygon', coordinates: [ring] }))
+    setSaveOk(false)
+  }
+
   return (
     <div className="space-y-3">
       {/* Header */}
@@ -626,7 +670,7 @@ function FieldMapPanel({ farm, isAdmin, mapLink, onFarmUpdate }) {
       {/* Info banners */}
       {isAdmin && !hasBoundary && (
         <p className="text-xs text-blue-700 font-body bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
-          Draw a polygon using the tools on the left of the map to mark your farm boundary, then click Save Boundary.
+          Draw a polygon on the map using the toolbar on the left, <strong>or</strong> enter GPS coordinates below to auto-generate the boundary.
         </p>
       )}
       {!hasBoundary && !isAdmin && (
@@ -645,6 +689,56 @@ function FieldMapPanel({ farm, isAdmin, mapLink, onFarmUpdate }) {
 
       {/* Map */}
       <div ref={mapDivRef} className="rounded-2xl overflow-hidden border border-gray-200 shadow-sm" style={{ height: 480 }} />
+
+      {/* Coordinate entry panel */}
+      {isAdmin && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <button
+            onClick={() => setShowCoords(v => !v)}
+            className="w-full flex items-center justify-between px-5 py-3 text-sm font-heading font-semibold text-gf-dark hover:bg-gray-50 transition-colors"
+          >
+            <span>Enter Boundary Coordinates (GPS Survey)</span>
+            <span className="text-gray-400 text-xs font-body">{showCoords ? '▲ Hide' : '▼ Show'}</span>
+          </button>
+
+          {showCoords && (
+            <div className="px-5 pb-5 space-y-3 border-t border-gray-100">
+              <p className="text-xs text-gray-500 font-body pt-3">
+                Paste one coordinate per line in <strong>Latitude, Longitude</strong> format. At least 3 points needed.
+                You can copy these from Google Maps (right-click a point → copy coordinates).
+              </p>
+
+              {/* Example hint */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 font-mono text-xs text-gray-500 select-all">
+                14.6832, 77.6101<br />
+                14.6845, 77.6118<br />
+                14.6838, 77.6130<br />
+                14.6819, 77.6115
+              </div>
+
+              <textarea
+                value={coordsText}
+                onChange={e => { setCoordsText(e.target.value); setCoordErr('') }}
+                rows={6}
+                placeholder={'14.6832, 77.6101\n14.6845, 77.6118\n14.6838, 77.6130\n14.6819, 77.6115'}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gf-mid resize-y"
+              />
+
+              {coordErr && (
+                <p className="text-xs text-red-600 font-body bg-red-50 border border-red-200 rounded-lg px-3 py-2">{coordErr}</p>
+              )}
+
+              <button
+                onClick={plotFromCoords}
+                disabled={!coordsText.trim()}
+                className="bg-gf-mid text-white font-heading font-semibold px-5 py-2 rounded-lg text-sm hover:bg-gf-dark disabled:opacity-50 transition-colors"
+              >
+                Generate Boundary on Map
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Save button */}
       {isAdmin && pendingGJ && (
