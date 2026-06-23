@@ -5,6 +5,7 @@ Revises: 009
 Create Date: 2026-06-22
 """
 from alembic import op
+from sqlalchemy import text
 
 revision = "010"
 down_revision = "009"
@@ -13,9 +14,13 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Extend reportstatus enum with demo-friendly values
-    op.execute("ALTER TYPE reportstatus ADD VALUE IF NOT EXISTS 'completed'")
-    op.execute("ALTER TYPE reportstatus ADD VALUE IF NOT EXISTS 'follow_up_required'")
+    # ALTER TYPE ADD VALUE cannot be used in the same transaction as INSERTs
+    # with those new values. Commit first, then add outside any transaction.
+    conn = op.get_bind()
+    conn.execute(text("COMMIT"))
+    conn.execute(text("ALTER TYPE reportstatus ADD VALUE IF NOT EXISTS 'completed'"))
+    conn.execute(text("ALTER TYPE reportstatus ADD VALUE IF NOT EXISTS 'follow_up_required'"))
+    conn.execute(text("BEGIN"))
 
     # New columns
     op.execute("ALTER TABLE field_reports ADD COLUMN IF NOT EXISTS observations TEXT")
