@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
-from sqlalchemy import String, Float, Boolean, DateTime, ForeignKey, Enum as SAEnum
+from sqlalchemy import String, Float, Boolean, DateTime, ForeignKey, Enum as SAEnum, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
@@ -33,6 +33,7 @@ class Farm(Base):
     size_acres: Mapped[float] = mapped_column(Float, nullable=True)
     gps_lat: Mapped[float] = mapped_column(Float, nullable=True)
     gps_lng: Mapped[float] = mapped_column(Float, nullable=True)
+    boundary_geojson: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     status: Mapped[FarmStatus] = mapped_column(SAEnum(FarmStatus), default=FarmStatus.active)
     subscription_plan: Mapped[SubscriptionPlan] = mapped_column(SAEnum(SubscriptionPlan), default=SubscriptionPlan.none)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

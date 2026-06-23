@@ -14,6 +14,7 @@ class FarmCreate(BaseModel):
     size_acres: Optional[float] = None
     gps_lat: Optional[float] = None
     gps_lng: Optional[float] = None
+    boundary_geojson: Optional[str] = None
     subscription_plan: SubscriptionPlan = SubscriptionPlan.none
 
 
@@ -25,6 +26,7 @@ class FarmUpdate(BaseModel):
     size_acres: Optional[float] = None
     gps_lat: Optional[float] = None
     gps_lng: Optional[float] = None
+    boundary_geojson: Optional[str] = None
     status: Optional[FarmStatus] = None
     subscription_plan: Optional[SubscriptionPlan] = None
 
@@ -39,6 +41,7 @@ class FarmOut(BaseModel):
     size_acres: Optional[float] = None
     gps_lat: Optional[float] = None
     gps_lng: Optional[float] = None
+    boundary_geojson: Optional[str] = None
     status: FarmStatus
     subscription_plan: SubscriptionPlan
     created_at: datetime

@@ -39,6 +39,45 @@ const oneTimeServices = [
   },
 ]
 
+const fieldOperations = [
+  {
+    icon: '💧',
+    title: 'Irrigation',
+    desc: 'Scheduled and on-demand irrigation services — drip, sprinkler, and flood irrigation. Field team visits to check and operate water systems.',
+    features: ['Scheduled visits', 'Pump & valve checks', 'Water usage log'],
+  },
+  {
+    icon: '🌿',
+    title: 'Fertilizer Application',
+    desc: 'Soil-based nutrient management. Our field team applies fertilizers at the right dose, right time — with before/after photo reports.',
+    features: ['Soil analysis review', 'Dosage planning', 'Application report'],
+  },
+  {
+    icon: '🐛',
+    title: 'Pest Control',
+    desc: 'Identification and treatment of crop pests and diseases. Integrated pest management with minimal chemical use.',
+    features: ['Pest identification', 'Targeted treatment', 'Follow-up inspection'],
+  },
+  {
+    icon: '🔭',
+    title: 'Crop Monitoring',
+    desc: 'Regular field walkthroughs to track crop growth, identify issues early, and document progress with photos shared via WhatsApp.',
+    features: ['Weekly/fortnightly visits', 'Growth stage tracking', 'Photo report'],
+  },
+  {
+    icon: '📋',
+    title: 'Field Inspection',
+    desc: 'Comprehensive farm health checks — soil condition, irrigation status, fence integrity, and overall farm state documented in a field report.',
+    features: ['Full farm walkthrough', 'Detailed field report', 'Issue escalation'],
+  },
+  {
+    icon: '🌾',
+    title: 'Harvesting Support',
+    desc: 'Coordination and supervision of harvest operations. Labour arrangement, equipment coordination, and produce transport support.',
+    features: ['Labour coordination', 'Equipment supervision', 'Produce handling'],
+  },
+]
+
 const ongoingServices = [
   {
     icon: '🔧',
@@ -149,6 +188,48 @@ export default function Services() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Field Operations */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-12">
+            <span className="text-xs font-heading font-semibold text-gf-light uppercase tracking-widest">
+              Field Operations
+            </span>
+            <h2 className="section-heading text-3xl md:text-4xl mt-2">
+              Agricultural Services, Managed by Our Team
+            </h2>
+            <p className="text-gray-500 mt-3 max-w-2xl">
+              Our field team handles the day-to-day work on your land — from irrigation runs to
+              pest control — and sends you photo updates after every visit.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {fieldOperations.map(s => (
+              <div
+                key={s.title}
+                className="bg-gf-offwhite rounded-2xl border border-gf-pale p-6 hover:shadow-md hover:border-gf-light transition-all duration-200 flex flex-col"
+              >
+                <div className="text-4xl mb-4">{s.icon}</div>
+                <h3 className="font-heading font-bold text-gf-dark text-xl mb-3">{s.title}</h3>
+                <p className="text-gray-600 text-sm leading-relaxed mb-4 flex-grow">{s.desc}</p>
+                <ul className="space-y-1">
+                  {s.features.map(f => (
+                    <li key={f} className="flex items-center gap-2 text-xs text-gray-500">
+                      <span className="text-gf-light">✓</span>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <p className="text-center mt-10 text-sm text-gray-500">
+            All field operations are tracked in your customer portal and documented with photos.{' '}
+            <Link to="/contact" className="text-gf-mid font-semibold hover:underline">Contact us →</Link>
+          </p>
         </div>
       </section>
 
