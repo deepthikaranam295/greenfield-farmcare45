@@ -6,6 +6,7 @@ from app.models.vendor import Vendor, VendorOrder
 from app.models.notification import Notification
 from app.models.profile import FarmOwnerProfile, WorkerProfile, PasswordResetToken
 from app.models.camera import FarmCamera
+from app.models.lead import Lead
 
 __all__ = [
     "User", "Farm", "Task",
@@ -14,4 +15,5 @@ __all__ = [
     "Notification",
     "FarmOwnerProfile", "WorkerProfile", "PasswordResetToken",
     "FarmCamera",
+    "Lead",
 ]

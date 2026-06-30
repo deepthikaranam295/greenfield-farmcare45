@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Layout from '../components/Layout'
+import { submitLead } from '../api/leads'
 
 const farmSizes = ['< 5 acres', '5 – 10 acres', '10 – 20 acres', '20+ acres']
 const serviceOptions = [
@@ -42,22 +43,26 @@ export default function Contact() {
     e.preventDefault()
     setLoading(true)
     try {
-      await fetch('https://formspree.io/f/xpwzgvkq', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-          name: form.name,
-          whatsapp: '+91' + form.whatsapp,
-          city: form.city,
-          farmLocation: form.farmLocation,
-          farmSize: form.farmSize,
-          services: form.services.join(', '),
-        }),
-      })
-      setSubmitted(true)
-    } catch (err) {
-      alert('Something went wrong. Please call or WhatsApp us directly.')
+      // Save to database (for admin Leads dashboard)
+      await submitLead({ ...form, whatsapp: '+91' + form.whatsapp })
+    } catch (_) {
+      // Fallback: Formspree email alert even if backend is down
+      try {
+        await fetch('https://formspree.io/f/xpwzgvkq', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            name: form.name,
+            whatsapp: '+91' + form.whatsapp,
+            city: form.city,
+            farmLocation: form.farmLocation,
+            farmSize: form.farmSize,
+            services: form.services.join(', '),
+          }),
+        })
+      } catch (_2) { /* silent */ }
     } finally {
+      setSubmitted(true)
       setLoading(false)
     }
   }

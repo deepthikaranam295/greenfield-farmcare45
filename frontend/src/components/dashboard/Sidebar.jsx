@@ -9,6 +9,7 @@ const navItems = [
   { to: '/dashboard/farms',   label: 'Farms',     icon: '🌾', roles: ALL },
   { to: '/dashboard/tasks',   label: 'Tasks',     icon: '✅', roles: STAFF },
   { to: '/dashboard/reports', label: 'Reports',   icon: '📋', roles: ALL },
+  { to: '/dashboard/leads',   label: 'Leads',     icon: '📥', roles: ['admin', 'field_team'] },
   { to: '/dashboard/users',   label: 'Users',     icon: '👥', roles: ['admin'] },
 ]
 

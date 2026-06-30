@@ -21,6 +21,7 @@ import FarmDetail from './pages/dashboard/FarmDetail'
 import Tasks from './pages/dashboard/Tasks'
 import Reports from './pages/dashboard/Reports'
 import Users from './pages/dashboard/Users'
+import Leads from './pages/dashboard/Leads'
 
 export default function App() {
   return (
@@ -56,6 +57,14 @@ export default function App() {
             <Route path="farms/:id" element={<FarmDetail />} />
             <Route path="tasks" element={<Tasks />} />
             <Route path="reports" element={<Reports />} />
+            <Route
+              path="leads"
+              element={
+                <ProtectedRoute roles={['admin', 'field_team']}>
+                  <Leads />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="users"
               element={
