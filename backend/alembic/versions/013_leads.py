@@ -6,7 +6,6 @@ Create Date: 2026-06-30
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import UUID
 
 revision = "013"
 down_revision = "012"
@@ -16,40 +15,44 @@ depends_on = None
 
 def upgrade() -> None:
     conn = op.get_bind()
+
+    # Create enum type outside any transaction (required by PostgreSQL)
     conn.execute(sa.text("COMMIT"))
     conn.execute(sa.text(
         "DO $$ BEGIN "
         "CREATE TYPE leadstatus AS ENUM "
-        "('new', 'contacted', 'visit_scheduled', 'converted', 'not_interested'); "
+        "('new','contacted','visit_scheduled','converted','not_interested'); "
         "EXCEPTION WHEN duplicate_object THEN NULL; END $$"
     ))
     conn.execute(sa.text("BEGIN"))
 
-    op.create_table(
-        "leads",
-        sa.Column("id", UUID(as_uuid=True), primary_key=True, server_default=sa.text("uuid_generate_v4()")),
-        sa.Column("name", sa.String(255), nullable=False),
-        sa.Column("whatsapp", sa.String(20), nullable=False),
-        sa.Column("city", sa.String(255), nullable=True),
-        sa.Column("farm_location", sa.Text, nullable=True),
-        sa.Column("farm_size", sa.String(50), nullable=True),
-        sa.Column("services", sa.Text, nullable=True),
-        sa.Column("status", sa.Enum("new", "contacted", "visit_scheduled", "converted", "not_interested", name="leadstatus", create_type=False), nullable=False, server_default="new"),
-        sa.Column("assigned_to", UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
-        sa.Column("notes", sa.Text, nullable=True),
-        sa.Column("is_deleted", sa.Boolean, nullable=False, server_default="false"),
-        sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("NOW()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("NOW()")),
-    )
-    op.create_index("ix_leads_status", "leads", ["status"])
-    op.create_index("ix_leads_assigned_to", "leads", ["assigned_to"])
-    op.create_index("ix_leads_is_deleted", "leads", ["is_deleted"])
+    # Use raw SQL for table creation to avoid SQLAlchemy auto-emitting CREATE TYPE
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS leads (
+            id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            name        VARCHAR(255) NOT NULL,
+            whatsapp    VARCHAR(20)  NOT NULL,
+            city        VARCHAR(255),
+            farm_location TEXT,
+            farm_size   VARCHAR(50),
+            services    TEXT,
+            status      leadstatus   NOT NULL DEFAULT 'new',
+            assigned_to UUID REFERENCES users(id) ON DELETE SET NULL,
+            notes       TEXT,
+            is_deleted  BOOLEAN      NOT NULL DEFAULT false,
+            deleted_at  TIMESTAMPTZ,
+            created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+            updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+        )
+    """)
+    op.execute("CREATE INDEX IF NOT EXISTS ix_leads_status      ON leads (status)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_leads_assigned_to ON leads (assigned_to)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_leads_is_deleted  ON leads (is_deleted)")
 
 
 def downgrade() -> None:
-    op.drop_index("ix_leads_is_deleted", table_name="leads")
-    op.drop_index("ix_leads_assigned_to", table_name="leads")
-    op.drop_index("ix_leads_status", table_name="leads")
-    op.drop_table("leads")
-    op.execute("DROP TYPE IF EXISTS leadstatus")
+    op.execute("DROP INDEX IF EXISTS ix_leads_is_deleted")
+    op.execute("DROP INDEX IF EXISTS ix_leads_assigned_to")
+    op.execute("DROP INDEX IF EXISTS ix_leads_status")
+    op.execute("DROP TABLE IF EXISTS leads")
+    op.execute("DROP TYPE  IF EXISTS leadstatus")
