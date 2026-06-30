@@ -24,9 +24,9 @@ const whyCards = [
     desc: 'Regular security patrols and motion alerts keep your land safe 24 hours a day.',
   },
   {
-    icon: '💰',
-    title: 'Transparent Pricing',
-    desc: 'Itemised quotes before any work begins. You know exactly what you are paying for.',
+    icon: '📋',
+    title: 'Detailed Quotes',
+    desc: 'Itemised quotes before any work begins. You know exactly what to expect.',
   },
   {
     icon: '📲',
@@ -146,7 +146,7 @@ export default function Home() {
           </div>
           <div className="text-center mt-8">
             <Link to="/services" className="btn-primary inline-block">
-              See All Services & Pricing
+              See All Services
             </Link>
           </div>
         </div>
