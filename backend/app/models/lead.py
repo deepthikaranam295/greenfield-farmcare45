@@ -34,4 +34,15 @@ class Lead(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
+    email: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    state: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    district: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    mandal: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    village: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    size_acres: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    budget_range: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    farm_coordinates: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    other_details: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
     assigned_user: Mapped[Optional["User"]] = relationship("User", foreign_keys=[assigned_to])

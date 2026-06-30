@@ -19,11 +19,21 @@ def create_lead(db: Session, payload: LeadCreate) -> Lead:
     services_str = ", ".join(payload.services) if payload.services else None
     lead = Lead(
         name=payload.name,
-        whatsapp=payload.whatsapp,
-        city=payload.city,
-        farm_location=payload.farm_location,
-        farm_size=payload.farm_size,
+        email=payload.email,
+        whatsapp=payload.whatsapp or payload.phone,
+        phone=payload.phone or payload.whatsapp,
         services=services_str,
+        state=payload.state or payload.city,
+        city=payload.city or payload.state,
+        district=payload.district,
+        mandal=payload.mandal,
+        village=payload.village,
+        size_acres=payload.size_acres or payload.farm_size,
+        farm_size=payload.farm_size or payload.size_acres,
+        budget_range=payload.budget_range,
+        farm_coordinates=payload.farm_coordinates or payload.farm_location,
+        farm_location=payload.farm_location or payload.farm_coordinates,
+        other_details=payload.other_details,
     )
     db.add(lead)
     db.commit()

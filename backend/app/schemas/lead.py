@@ -7,11 +7,22 @@ from app.models.lead import LeadStatus
 
 class LeadCreate(BaseModel):
     name: str
-    whatsapp: str
+    email: Optional[str] = None
+    whatsapp: Optional[str] = None
+    phone: Optional[str] = None
+    services: Optional[List[str]] = None
+    state: Optional[str] = None
+    district: Optional[str] = None
+    mandal: Optional[str] = None
+    village: Optional[str] = None
+    size_acres: Optional[str] = None
+    budget_range: Optional[str] = None
+    farm_coordinates: Optional[str] = None
+    other_details: Optional[str] = None
+    # legacy fields kept for backward compat
     city: Optional[str] = None
     farm_location: Optional[str] = None
     farm_size: Optional[str] = None
-    services: Optional[List[str]] = None
 
 
 class LeadUpdate(BaseModel):
@@ -23,11 +34,18 @@ class LeadUpdate(BaseModel):
 class LeadOut(BaseModel):
     id: uuid.UUID
     name: str
-    whatsapp: str
-    city: Optional[str] = None
-    farm_location: Optional[str] = None
-    farm_size: Optional[str] = None
+    email: Optional[str] = None
+    whatsapp: Optional[str] = None
+    phone: Optional[str] = None
     services: Optional[str] = None
+    state: Optional[str] = None
+    district: Optional[str] = None
+    mandal: Optional[str] = None
+    village: Optional[str] = None
+    size_acres: Optional[str] = None
+    budget_range: Optional[str] = None
+    farm_coordinates: Optional[str] = None
+    other_details: Optional[str] = None
     status: LeadStatus
     assigned_to: Optional[uuid.UUID] = None
     assigned_to_name: Optional[str] = None

@@ -2,12 +2,19 @@ import client from './client'
 
 export const submitLead = (formData) =>
   client.post('/api/public/leads', {
-    name:          formData.name,
-    whatsapp:      formData.whatsapp,
-    city:          formData.city,
-    farm_location: formData.farmLocation,
-    farm_size:     formData.farmSize,
-    services:      formData.services,
+    name:             formData.name,
+    email:            formData.email,
+    phone:            formData.phone,
+    whatsapp:         formData.phone,
+    services:         formData.services,
+    state:            formData.state,
+    district:         formData.district,
+    mandal:           formData.mandal,
+    village:          formData.village,
+    size_acres:       formData.sizeAcres,
+    budget_range:     formData.budgetRange,
+    farm_coordinates: formData.farmCoordinates,
+    other_details:    formData.otherDetails,
   }).then(r => r.data)
 
 export const getLeads = (page = 1, size = 20, status = '', assigned_to = '') =>
