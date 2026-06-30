@@ -34,7 +34,7 @@ def upgrade() -> None:
         sa.Column("farm_location", sa.Text, nullable=True),
         sa.Column("farm_size", sa.String(50), nullable=True),
         sa.Column("services", sa.Text, nullable=True),
-        sa.Column("status", sa.Enum("new", "contacted", "visit_scheduled", "converted", "not_interested", name="leadstatus"), nullable=False, server_default="new"),
+        sa.Column("status", sa.Enum("new", "contacted", "visit_scheduled", "converted", "not_interested", name="leadstatus", create_type=False), nullable=False, server_default="new"),
         sa.Column("assigned_to", UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
         sa.Column("notes", sa.Text, nullable=True),
         sa.Column("is_deleted", sa.Boolean, nullable=False, server_default="false"),
