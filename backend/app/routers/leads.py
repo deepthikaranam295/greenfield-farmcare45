@@ -60,9 +60,9 @@ def list_leads(
 ):
     logger.info("GET /api/leads: page=%d status=%s assigned_to=%s", p.page, status, assigned_to)
     rows, total = lead_service.list_leads(db, p.skip, p.size, status, assigned_to)
-    return PaginatedResponse.ok(
+    return PaginatedResponse(
         data=[_lead_to_out(r) for r in rows],
-        total=total, page=p.page, size=p.size,
+        total=total, page=p.page, size=p.size, pages=p.pages(total),
     )
 
 
@@ -75,9 +75,9 @@ def my_leads(
 ):
     logger.info("GET /api/leads/mine: user_id=%s", current_user.id)
     rows, total = lead_service.list_my_leads(db, current_user, p.skip, p.size)
-    return PaginatedResponse.ok(
+    return PaginatedResponse(
         data=[_lead_to_out(r) for r in rows],
-        total=total, page=p.page, size=p.size,
+        total=total, page=p.page, size=p.size, pages=p.pages(total),
     )
 
 
