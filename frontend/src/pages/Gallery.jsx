@@ -1,140 +1,21 @@
 import { useState, useEffect, useRef } from 'react'
 import Layout from '../components/Layout'
 
-const tabs = ['All', 'Plantation', 'Drip Irrigation', 'Farm House']
+const tabs = ['Mosambi Orchard']
 
 const photos = [
-  // ── Plantation — Mosambi journey ─────────────────────────────────────────
-  {
-    src: '/gallery/p1-bare-land.jpeg',
-    stage: 'Stage 1',
-    caption: 'Bare land — ready to begin',
-    category: 'Plantation',
-  },
-  {
-    src: '/gallery/p2-jcb-leveling.jpeg',
-    stage: 'Stage 2',
-    caption: 'JCB leveling the field',
-    category: 'Plantation',
-  },
-  {
-    src: '/gallery/p4-young-orchard-aerial.jpeg',
-    stage: 'Stage 3',
-    caption: 'Young Mosambi orchard — aerial view',
-    category: 'Plantation',
-  },
-  {
-    src: '/gallery/p5-young-orchard-path.jpeg',
-    stage: 'Stage 4',
-    caption: 'Growing orchard with farm paths',
-    category: 'Plantation',
-  },
-  {
-    src: '/gallery/p6-orchard-marked-plots.jpeg',
-    stage: 'Stage 5',
-    caption: 'Plots marked, trees establishing',
-    category: 'Plantation',
-  },
-  {
-    src: '/gallery/p7-mature-orchard-mountain.jpeg',
-    stage: 'Stage 6',
-    caption: 'Mature Mosambi orchard — mountain backdrop',
-    category: 'Plantation',
-  },
-  {
-    src: '/gallery/p8-mature-orchard-panoramic.jpeg',
-    stage: 'Stage 7',
-    caption: 'Panoramic view — full canopy coverage',
-    category: 'Plantation',
-  },
-  {
-    src: '/gallery/p9-mature-orchard-balcony.jpeg',
-    stage: 'Stage 8',
-    caption: 'Orchard viewed from farm house balcony',
-    category: 'Plantation',
-  },
-  {
-    src: '/gallery/p10-mature-orchard-full.jpeg',
-    stage: 'Stage 9',
-    caption: 'Full grown Mosambi orchard',
-    category: 'Plantation',
-  },
-  {
-    src: '/gallery/p11-mature-orchard-wide.jpeg',
-    stage: 'Stage 10',
-    caption: 'Wide orchard in perfect rows',
-    category: 'Plantation',
-  },
-  {
-    src: '/gallery/p12-mature-orchard-pole.jpeg',
-    stage: 'Stage 11',
-    caption: 'Mature orchard with electricity connection',
-    category: 'Plantation',
-  },
-  {
-    src: '/gallery/m1-mature-mosambi.jpeg',
-    stage: 'Stage 12',
-    caption: 'Dense mature Mosambi trees',
-    category: 'Plantation',
-  },
-
-  // ── Drip Irrigation ──────────────────────────────────────────────────────
-  {
-    src: '/gallery/d1-drip-pipe-emitter.jpeg',
-    stage: 'Stage 1',
-    caption: 'Drip emitter installed at sapling base',
-    category: 'Drip Irrigation',
-  },
-  {
-    src: '/gallery/d2-drip-citrus-sapling.jpeg',
-    stage: 'Stage 2',
-    caption: 'Mosambi sapling with drip line',
-    category: 'Drip Irrigation',
-  },
-  {
-    src: '/gallery/d3-drip-lemon-tree.jpeg',
-    stage: 'Stage 3',
-    caption: 'Mosambi tree — drip irrigation running',
-    category: 'Drip Irrigation',
-  },
-  {
-    src: '/gallery/d5-mulching-drip.jpeg',
-    stage: 'Stage 4',
-    caption: 'Organic mulching around tree with drip',
-    category: 'Drip Irrigation',
-  },
-
-  // ── Farm House ───────────────────────────────────────────────────────────
-  {
-    src: '/gallery/fh1-construction-frame.jpeg',
-    stage: 'Stage 1',
-    caption: 'Foundation & frame construction',
-    category: 'Farm House',
-  },
-  {
-    src: '/gallery/fh2-rcc-slab.jpeg',
-    stage: 'Stage 2',
-    caption: 'RCC roof slab with plumbing laid',
-    category: 'Farm House',
-  },
-  {
-    src: '/gallery/fh4-night-view.jpeg',
-    stage: 'Stage 3',
-    caption: 'Ground floor complete — night view',
-    category: 'Farm House',
-  },
-  {
-    src: '/gallery/fh5-completed-day.jpeg',
-    stage: 'Stage 4',
-    caption: 'Elevated farm house — completed',
-    category: 'Farm House',
-  },
-  {
-    src: '/gallery/fh3-completed-elevated.jpeg',
-    stage: 'Stage 5',
-    caption: 'Farm house with 360° orchard view',
-    category: 'Farm House',
-  },
+  { src: '/gallery/p1-bare-land.jpeg',             stage: 'Stage 1',  caption: 'Bare land — ready to begin' },
+  { src: '/gallery/p2-jcb-leveling.jpeg',          stage: 'Stage 2',  caption: 'JCB leveling the field' },
+  { src: '/gallery/p4-young-orchard-aerial.jpeg',  stage: 'Stage 3',  caption: 'Young Mosambi orchard — aerial view' },
+  { src: '/gallery/p5-young-orchard-path.jpeg',    stage: 'Stage 4',  caption: 'Growing orchard with farm paths' },
+  { src: '/gallery/p6-orchard-marked-plots.jpeg',  stage: 'Stage 5',  caption: 'Plots marked, trees establishing' },
+  { src: '/gallery/p7-mature-orchard-mountain.jpeg', stage: 'Stage 6', caption: 'Mature Mosambi — mountain backdrop' },
+  { src: '/gallery/p8-mature-orchard-panoramic.jpeg', stage: 'Stage 7', caption: 'Panoramic view — full canopy coverage' },
+  { src: '/gallery/p9-mature-orchard-balcony.jpeg', stage: 'Stage 8', caption: 'Orchard from farm house balcony' },
+  { src: '/gallery/p10-mature-orchard-full.jpeg',  stage: 'Stage 9',  caption: 'Full grown Mosambi orchard' },
+  { src: '/gallery/p11-mature-orchard-wide.jpeg',  stage: 'Stage 10', caption: 'Wide orchard in perfect rows' },
+  { src: '/gallery/p12-mature-orchard-pole.jpeg',  stage: 'Stage 11', caption: 'Mature orchard with electricity' },
+  { src: '/gallery/m1-mature-mosambi.jpeg',        stage: 'Stage 12', caption: 'Dense mature Mosambi trees' },
 ]
 
 function PhotoCard({ photo, onClick, index }) {
@@ -247,7 +128,7 @@ export default function Gallery() {
   const [activeTab, setActiveTab] = useState('All')
   const [lightbox, setLightbox] = useState(null)
 
-  const filtered = activeTab === 'All' ? photos : photos.filter(p => p.category === activeTab)
+  const filtered = photos
 
   const openLightbox = (photo) => {
     const idx = filtered.indexOf(photo)
@@ -317,38 +198,19 @@ export default function Gallery() {
         </div>
       </section>
 
-      {/* Filter Tabs */}
+      {/* Section label */}
       <div
-        className="sticky top-16 z-30 border-b"
+        className="border-b"
         style={{ background: '#F7FAF7', borderColor: '#d4e8d4' }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-wrap gap-2 justify-center">
-            {tabs.map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className="px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200"
-                style={
-                  activeTab === tab
-                    ? { background: '#123B2A', color: '#fff', boxShadow: '0 2px 8px rgba(18,59,42,0.3)' }
-                    : { background: '#fff', color: '#123B2A', border: '1.5px solid #a8d5b5' }
-                }
-              >
-                {tab}
-                <span
-                  className="ml-2 text-xs px-1.5 py-0.5 rounded-full"
-                  style={
-                    activeTab === tab
-                      ? { background: 'rgba(255,255,255,0.2)', color: '#fff' }
-                      : { background: '#e8f5e9', color: '#2E7D32' }
-                  }
-                >
-                  {tab === 'All' ? photos.length : photos.filter(p => p.category === tab).length}
-                </span>
-              </button>
-            ))}
-          </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-center gap-3">
+          <span
+            className="px-5 py-2 rounded-full text-sm font-semibold text-white"
+            style={{ background: '#123B2A' }}
+          >
+            🌿 Mosambi Orchard
+          </span>
+          <span className="text-sm text-gray-400">{photos.length} photos · Bare land to full orchard</span>
         </div>
       </div>
 
@@ -377,10 +239,10 @@ export default function Gallery() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
             {[
-              { num: '21+', label: 'Project Photos' },
-              { num: '3', label: 'Farm Categories' },
-              { num: '12', label: 'Plantation Stages' },
+              { num: '12', label: 'Stages Documented' },
+              { num: '1', label: 'Mosambi Farm' },
               { num: '100%', label: 'Real Farm Work' },
+              { num: '5+', label: 'Years Journey' },
             ].map(s => (
               <div key={s.label}>
                 <p className="font-extrabold text-3xl" style={{ color: '#74c99a' }}>{s.num}</p>
