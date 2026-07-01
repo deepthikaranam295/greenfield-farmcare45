@@ -18,8 +18,7 @@
   }
   .btn-primary:hover { background: #f0ce00; }
   .btn-outline-white {
-    @apply inline-flex items-center justify-center gap-2 border-2 border-white text-white font-heading font-semibold px-6 py-3 rounded-lg hover:bg-white active:scale-95 transition-all duration-200;
-    hover:color: #367C2B;
+    @apply inline-flex items-center justify-center gap-2 border-2 border-white text-white font-heading font-semibold px-6 py-3 rounded-lg hover:bg-white hover:text-gf-dark active:scale-95 transition-all duration-200;
   }
   .btn-outline-green {
     @apply inline-flex items-center justify-center gap-2 border-2 border-gf-dark text-gf-dark font-heading font-semibold px-6 py-3 rounded-lg hover:bg-gf-dark hover:text-white active:scale-95 transition-all duration-200;
