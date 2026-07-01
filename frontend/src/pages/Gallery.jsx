@@ -1,49 +1,46 @@
 import { useState, useEffect, useRef } from 'react'
 import Layout from '../components/Layout'
 
-const tabs = ['Mosambi Orchard']
-
 const photos = [
-  { src: '/gallery/farmer-mosambi-orchard.jpeg',   stage: 'Our Team', caption: 'Farm manager — present at every stage of the journey' },
-  { src: '/gallery/p1-bare-land.jpeg',             stage: 'Stage 1',  caption: 'Bare land — ready to begin' },
-  { src: '/gallery/p2-jcb-leveling.jpeg',          stage: 'Stage 2',  caption: 'JCB leveling the field' },
-  { src: '/gallery/p4-young-orchard-aerial.jpeg',  stage: 'Stage 3',  caption: 'Young Mosambi orchard — aerial view' },
-  { src: '/gallery/p5-young-orchard-path.jpeg',    stage: 'Stage 4',  caption: 'Growing orchard with farm paths' },
-  { src: '/gallery/p6-orchard-marked-plots.jpeg',  stage: 'Stage 5',  caption: 'Plots marked, trees establishing' },
-  { src: '/gallery/p7-mature-orchard-mountain.jpeg', stage: 'Stage 6', caption: 'Mature Mosambi — mountain backdrop' },
-  { src: '/gallery/p8-mature-orchard-panoramic.jpeg', stage: 'Stage 7', caption: 'Panoramic view — full canopy coverage' },
-  { src: '/gallery/p9-mature-orchard-balcony.jpeg', stage: 'Stage 8', caption: 'Orchard from farm house balcony' },
-  { src: '/gallery/p10-mature-orchard-full.jpeg',  stage: 'Stage 9',  caption: 'Full grown Mosambi orchard' },
-  { src: '/gallery/p11-mature-orchard-wide.jpeg',  stage: 'Stage 10', caption: 'Wide orchard in perfect rows' },
-  { src: '/gallery/p12-mature-orchard-pole.jpeg',  stage: 'Stage 11', caption: 'Mature orchard with electricity' },
-  { src: '/gallery/m1-mature-mosambi.jpeg',        stage: 'Stage 12', caption: 'Dense mature Mosambi trees' },
+  { src: '/gallery/p1-bare-land.jpeg',              stage: 'Stage 1',  caption: 'Bare land — where it all began' },
+  { src: '/gallery/p2-jcb-leveling.jpeg',           stage: 'Stage 2',  caption: 'JCB leveling the field' },
+  { src: '/gallery/p4-young-orchard-aerial.jpeg',   stage: 'Stage 3',  caption: 'Young Mosambi orchard — aerial view' },
+  { src: '/gallery/p5-young-orchard-path.jpeg',     stage: 'Stage 4',  caption: 'Growing orchard with farm paths' },
+  { src: '/gallery/p6-orchard-marked-plots.jpeg',   stage: 'Stage 5',  caption: 'Plots marked, trees establishing' },
+  { src: '/gallery/p7-mature-orchard-mountain.jpeg',stage: 'Stage 6',  caption: 'Mature Mosambi — mountain backdrop' },
+  { src: '/gallery/p8-mature-orchard-panoramic.jpeg',stage: 'Stage 7', caption: 'Panoramic view — full canopy coverage' },
+  { src: '/gallery/p9-mature-orchard-balcony.jpeg', stage: 'Stage 8',  caption: 'Orchard from farm house balcony' },
+  { src: '/gallery/p10-mature-orchard-full.jpeg',   stage: 'Stage 9',  caption: 'Full grown Mosambi orchard' },
+  { src: '/gallery/p11-mature-orchard-wide.jpeg',   stage: 'Stage 10', caption: 'Wide orchard in perfect rows' },
+  { src: '/gallery/p12-mature-orchard-pole.jpeg',   stage: 'Stage 11', caption: 'Mature orchard with electricity' },
+  { src: '/gallery/m1-mature-mosambi.jpeg',         stage: 'Stage 12', caption: 'Dense mature Mosambi trees' },
 ]
 
-function PhotoCard({ photo, onClick, index }) {
+function useInView(threshold = 0.15) {
   const ref = useRef(null)
   const [visible, setVisible] = useState(false)
-
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setVisible(true) },
-      { threshold: 0.1 }
-    )
-    if (ref.current) observer.observe(ref.current)
-    return () => observer.disconnect()
-  }, [])
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVisible(true) }, { threshold })
+    if (ref.current) obs.observe(ref.current)
+    return () => obs.disconnect()
+  }, [threshold])
+  return [ref, visible]
+}
 
+function PhotoCard({ photo, index, onClick }) {
+  const [ref, visible] = useInView()
   return (
     <div
       ref={ref}
-      onClick={() => onClick(photo)}
+      onClick={() => onClick(index)}
       className="group cursor-pointer"
       style={{
         opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0)' : 'translateY(24px)',
-        transition: `opacity 0.5s ease ${index * 0.04}s, transform 0.5s ease ${index * 0.04}s`,
+        transform: visible ? 'translateY(0)' : 'translateY(28px)',
+        transition: `opacity 0.55s ease ${(index % 6) * 0.07}s, transform 0.55s ease ${(index % 6) * 0.07}s`,
       }}
     >
-      <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+      <div className="rounded-2xl overflow-hidden bg-white shadow hover:shadow-2xl transition-all duration-300 hover:-translate-y-1.5">
         <div className="relative overflow-hidden" style={{ aspectRatio: '4/3' }}>
           <img
             src={photo.src}
@@ -51,74 +48,60 @@ function PhotoCard({ photo, onClick, index }) {
             loading="lazy"
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           <span
-            className="absolute top-3 left-3 text-xs font-semibold px-3 py-1 rounded-full text-white"
-            style={{ background: '#2E7D32' }}
+            className="absolute top-3 left-3 text-xs font-bold px-3 py-1 rounded-full text-white tracking-wide"
+            style={{ background: 'rgba(18,59,42,0.85)', backdropFilter: 'blur(6px)' }}
           >
             {photo.stage}
           </span>
         </div>
-        <div className="px-4 py-3">
-          <p className="text-sm font-medium text-gray-700 leading-snug">{photo.caption}</p>
-          <p className="text-xs mt-1" style={{ color: '#2E7D32' }}>{photo.category}</p>
+        <div className="px-4 py-3 border-t" style={{ borderColor: '#e8f5e9' }}>
+          <p className="text-sm font-medium leading-snug" style={{ color: '#1a3a2a' }}>{photo.caption}</p>
         </div>
       </div>
     </div>
   )
 }
 
-function Lightbox({ photo, onClose, onPrev, onNext }) {
+function Lightbox({ index, onClose, onPrev, onNext }) {
   useEffect(() => {
-    const handler = (e) => {
+    const fn = (e) => {
       if (e.key === 'Escape') onClose()
       if (e.key === 'ArrowRight') onNext()
       if (e.key === 'ArrowLeft') onPrev()
     }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
+    window.addEventListener('keydown', fn)
+    return () => window.removeEventListener('keydown', fn)
   }, [onClose, onNext, onPrev])
 
+  const photo = photos[index]
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.92)' }}
+      style={{ background: 'rgba(0,0,0,0.94)' }}
       onClick={onClose}
     >
-      <button
-        onClick={(e) => { e.stopPropagation(); onPrev() }}
-        className="absolute left-4 top-1/2 -translate-y-1/2 text-white text-3xl w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors z-10"
-      >
+      <button onClick={(e) => { e.stopPropagation(); onPrev() }}
+        className="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 text-white/80 hover:text-white text-5xl w-12 h-12 flex items-center justify-center z-10 transition-colors">
         ‹
       </button>
-      <div
-        className="relative max-w-4xl w-full"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <img
-          src={photo.src}
-          alt={photo.caption}
-          className="w-full max-h-[80vh] object-contain rounded-xl"
-        />
-        <div className="mt-3 text-center">
-          <span
-            className="inline-block text-xs font-semibold px-3 py-1 rounded-full text-white mb-2"
-            style={{ background: '#2E7D32' }}
-          >
+      <div className="relative max-w-4xl w-full" onClick={(e) => e.stopPropagation()}>
+        <img src={photo.src} alt={photo.caption} className="w-full max-h-[82vh] object-contain rounded-xl" />
+        <div className="mt-4 text-center">
+          <span className="inline-block text-xs font-bold px-3 py-1 rounded-full text-white mb-2" style={{ background: '#2E7D32' }}>
             {photo.stage}
           </span>
-          <p className="text-white text-sm font-medium">{photo.caption}</p>
+          <p className="text-white/90 text-sm font-medium">{photo.caption}</p>
+          <p className="text-white/40 text-xs mt-1">{index + 1} / {photos.length}</p>
         </div>
       </div>
-      <button
-        onClick={(e) => { e.stopPropagation(); onNext() }}
-        className="absolute right-4 top-1/2 -translate-y-1/2 text-white text-3xl w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors z-10"
-      >
+      <button onClick={(e) => { e.stopPropagation(); onNext() }}
+        className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 text-white/80 hover:text-white text-5xl w-12 h-12 flex items-center justify-center z-10 transition-colors">
         ›
       </button>
-      <button
-        onClick={onClose}
-        className="absolute top-4 right-4 text-white text-2xl w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
-      >
+      <button onClick={onClose}
+        className="absolute top-4 right-4 text-white/60 hover:text-white text-xl w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 transition-all">
         ✕
       </button>
     </div>
@@ -126,162 +109,195 @@ function Lightbox({ photo, onClose, onPrev, onNext }) {
 }
 
 export default function Gallery() {
-  const [activeTab, setActiveTab] = useState('All')
   const [lightbox, setLightbox] = useState(null)
-
-  const filtered = photos
-
-  const openLightbox = (photo) => {
-    const idx = filtered.indexOf(photo)
-    setLightbox(idx)
-  }
-
-  const closeLightbox = () => setLightbox(null)
-
-  const prevPhoto = () => setLightbox(i => (i - 1 + filtered.length) % filtered.length)
-  const nextPhoto = () => setLightbox(i => (i + 1) % filtered.length)
+  const [ownerRef, ownerVisible] = useInView(0.2)
 
   return (
     <Layout>
-      {/* Hero */}
-      <section
-        className="relative overflow-hidden"
-        style={{ minHeight: '520px', background: '#0a2317' }}
-      >
+
+      {/* ── Hero ── */}
+      <section className="relative overflow-hidden" style={{ background: '#0c2518', minHeight: 560 }}>
+        {/* background orchard */}
         <img
           src="/gallery/p10-mature-orchard-full.jpeg"
-          alt="Farm"
-          className="absolute inset-0 w-full h-full object-cover object-center"
-          style={{ opacity: 0.45 }}
+          alt="Mosambi orchard"
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: 0.18 }}
         />
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'linear-gradient(to right, rgba(18,59,42,0.97) 0%, rgba(18,59,42,0.75) 55%, rgba(18,59,42,0.2) 100%)',
-          }}
-        />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 flex flex-col justify-center" style={{ minHeight: '520px' }}>
-          <div className="max-w-2xl">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 flex flex-col lg:flex-row items-center gap-12" style={{ minHeight: 560 }}>
+
+          {/* Left text */}
+          <div className="flex-1 text-white">
             <span
               className="inline-block text-xs font-semibold uppercase tracking-widest px-4 py-1.5 rounded-full mb-6"
-              style={{ background: 'rgba(255,255,255,0.12)', color: '#a8d5b5', border: '1px solid rgba(255,255,255,0.15)' }}
+              style={{ background: 'rgba(116,201,154,0.15)', color: '#74c99a', border: '1px solid rgba(116,201,154,0.3)' }}
             >
-              Our Projects
+              Our Farm Gallery
             </span>
-            <h1 className="font-heading font-extrabold text-4xl md:text-5xl lg:text-6xl text-white leading-tight mb-5">
-              Our Work —<br />
-              <span style={{ color: '#74c99a' }}>Farms We Have Transformed</span>
+            <h1 className="font-heading font-extrabold text-4xl md:text-5xl leading-tight mb-5">
+              A Farm Built<br />
+              <span style={{ color: '#74c99a' }}>From the Ground Up</span>
             </h1>
-            <p className="text-white/70 text-lg md:text-xl leading-relaxed mb-8 max-w-xl">
-              Real projects from farms we manage. Follow each farm's journey,
-              stage by stage, from bare land to full plantation.
+            <p className="text-white/65 text-lg leading-relaxed mb-8 max-w-lg">
+              From bare red soil to a thriving Mosambi orchard — every photo here
+              is a real milestone from a real farm managed by our team.
             </p>
-            {/* Floating card */}
+            <div className="flex items-center gap-4 flex-wrap">
+              {[
+                { n: '12', l: 'Stages Documented' },
+                { n: '100%', l: 'Real Farm Work' },
+              ].map(s => (
+                <div key={s.l} className="text-center px-5 py-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <p className="font-extrabold text-2xl" style={{ color: '#74c99a' }}>{s.n}</p>
+                  <p className="text-white/50 text-xs mt-0.5">{s.l}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right — Owner card */}
+          <div className="flex-shrink-0 w-full max-w-xs">
             <div
-              className="inline-flex items-start gap-4 px-6 py-5 rounded-2xl"
-              style={{
-                background: 'rgba(255,255,255,0.09)',
-                backdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255,255,255,0.15)',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-              }}
+              className="rounded-3xl overflow-hidden shadow-2xl"
+              style={{ border: '2px solid rgba(116,201,154,0.3)' }}
             >
-              <span className="text-2xl mt-0.5">👨‍🌾</span>
-              <div>
-                <p className="text-white font-semibold text-sm leading-snug">Meet the team behind the work</p>
-                <p className="text-white/60 text-xs mt-1 leading-relaxed">
-                  Present on-site at every stage —<br />
-                  from land preparation to harvest.
+              <div className="relative">
+                <img
+                  src="/gallery/farmer-mosambi-orchard.jpeg"
+                  alt="Farm Owner"
+                  className="w-full object-cover object-top"
+                  style={{ height: 320 }}
+                />
+                <div
+                  className="absolute bottom-0 left-0 right-0 px-5 py-4"
+                  style={{ background: 'linear-gradient(to top, rgba(12,37,24,0.97) 0%, rgba(12,37,24,0.6) 70%, transparent 100%)' }}
+                >
+                  <p className="text-white font-bold text-base leading-tight">Farm Owner</p>
+                  <p className="text-white/60 text-xs mt-0.5">Managing this Mosambi orchard since day one</p>
+                </div>
+              </div>
+              <div
+                className="px-5 py-4 flex items-center gap-3"
+                style={{ background: 'rgba(116,201,154,0.08)' }}
+              >
+                <span className="text-xl">🌿</span>
+                <p className="text-white/70 text-xs leading-relaxed">
+                  Present on-site at every stage — from land preparation to harvest.
                 </p>
               </div>
             </div>
           </div>
+
         </div>
       </section>
 
-      {/* Section label */}
-      <div
-        className="border-b"
-        style={{ background: '#F7FAF7', borderColor: '#d4e8d4' }}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-center gap-3">
-          <span
-            className="px-5 py-2 rounded-full text-sm font-semibold text-white"
-            style={{ background: '#123B2A' }}
-          >
-            🌿 Mosambi Orchard
+      {/* ── Section label ── */}
+      <div style={{ background: '#F7FAF7', borderBottom: '1px solid #d4e8d4' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-center gap-3 flex-wrap">
+          <span className="px-5 py-2 rounded-full text-sm font-semibold text-white" style={{ background: '#123B2A' }}>
+            🌿 Mosambi Orchard Journey
           </span>
-          <span className="text-sm text-gray-400">{photos.length} photos · Farmer to full orchard</span>
+          <span className="text-sm text-gray-400">{photos.length} photos · Bare land → full orchard</span>
         </div>
       </div>
 
-      {/* Grid */}
-      <section className="py-12" style={{ background: '#F7FAF7' }}>
+      {/* ── Photo Grid ── */}
+      <section className="py-14" style={{ background: '#F7FAF7' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {filtered.length === 0 ? (
-            <div className="text-center py-24 text-gray-400">No photos in this category yet.</div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {filtered.map((photo, i) => (
-                <PhotoCard
-                  key={photo.src}
-                  photo={photo}
-                  index={i}
-                  onClick={openLightbox}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Stats bar */}
-      <section style={{ background: '#123B2A' }} className="py-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
-            {[
-              { num: '13', label: 'Photos in Gallery' },
-              { num: '1', label: 'Mosambi Farm' },
-              { num: '100%', label: 'Real Farm Work' },
-              { num: '5+', label: 'Years Journey' },
-            ].map(s => (
-              <div key={s.label}>
-                <p className="font-extrabold text-3xl" style={{ color: '#74c99a' }}>{s.num}</p>
-                <p className="text-white/60 text-sm mt-1">{s.label}</p>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {photos.map((photo, i) => (
+              <PhotoCard key={photo.src} photo={photo} index={i} onClick={setLightbox} />
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-16 bg-white text-center">
+      {/* ── Owner spotlight ── */}
+      <section
+        ref={ownerRef}
+        className="py-16"
+        style={{ background: '#fff', borderTop: '1px solid #e8f5e9' }}
+      >
+        <div
+          className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center gap-10"
+          style={{
+            opacity: ownerVisible ? 1 : 0,
+            transform: ownerVisible ? 'translateY(0)' : 'translateY(30px)',
+            transition: 'opacity 0.6s ease, transform 0.6s ease',
+          }}
+        >
+          <div className="flex-shrink-0">
+            <div
+              className="rounded-2xl overflow-hidden shadow-xl"
+              style={{ width: 200, height: 220, border: '3px solid #d4e8d4' }}
+            >
+              <img
+                src="/gallery/farmer-mosambi-orchard.jpeg"
+                alt="Farm Owner"
+                className="w-full h-full object-cover object-top"
+              />
+            </div>
+          </div>
+          <div>
+            <span
+              className="inline-block text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full mb-4"
+              style={{ background: '#e8f5e9', color: '#2E7D32' }}
+            >
+              About the Farm Owner
+            </span>
+            <h2 className="font-heading font-bold text-2xl md:text-3xl mb-4" style={{ color: '#123B2A' }}>
+              The person behind this orchard
+            </h2>
+            <p className="text-gray-500 leading-relaxed mb-4">
+              Every tree you see in this gallery was planted, nurtured, and grown under this owner's
+              vision. Starting from bare red soil, he turned an empty plot into a thriving Mosambi
+              orchard — and GreenField Farm Care has been with him at every stage.
+            </p>
+            <div className="flex gap-6 flex-wrap">
+              {[
+                { icon: '🌱', label: 'Started from bare land' },
+                { icon: '💧', label: 'Drip irrigation installed' },
+                { icon: '🏡', label: 'Farm house built on-site' },
+              ].map(f => (
+                <div key={f.label} className="flex items-center gap-2">
+                  <span>{f.icon}</span>
+                  <span className="text-sm text-gray-600 font-medium">{f.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA ── */}
+      <section className="py-16 text-center" style={{ background: '#123B2A' }}>
         <div className="max-w-2xl mx-auto px-4">
-          <h2 className="font-heading font-bold text-3xl mb-3" style={{ color: '#123B2A' }}>
+          <h2 className="font-heading font-bold text-3xl text-white mb-3">
             Want Your Farm to Look Like This?
           </h2>
-          <p className="text-gray-500 mb-8">
-            Request a free site visit and we'll show you exactly what's possible for your land.
+          <p className="text-white/60 mb-8">
+            Request a free site visit and we'll show you what's possible for your land.
           </p>
           <a
             href="/contact"
             className="inline-block font-semibold px-8 py-3 rounded-xl text-white transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5"
-            style={{ background: '#123B2A', boxShadow: '0 4px 16px rgba(18,59,42,0.3)' }}
+            style={{ background: '#2E7D32', boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}
           >
             Request Free Site Visit
           </a>
         </div>
       </section>
 
-      {/* Lightbox */}
+      {/* ── Lightbox ── */}
       {lightbox !== null && (
         <Lightbox
-          photo={filtered[lightbox]}
-          onClose={closeLightbox}
-          onPrev={prevPhoto}
-          onNext={nextPhoto}
+          index={lightbox}
+          onClose={() => setLightbox(null)}
+          onPrev={() => setLightbox(i => (i - 1 + photos.length) % photos.length)}
+          onNext={() => setLightbox(i => (i + 1) % photos.length)}
         />
       )}
+
     </Layout>
   )
 }
