@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import Layout from '../components/Layout'
 
-const tabs = ['All', 'Plantation', 'Drip Irrigation', 'Harvest', 'Farm House']
+const tabs = ['All', 'Plantation', 'Drip Irrigation', 'Farm House']
 
 const photos = [
-  // ── Plantation ──────────────────────────────────────────────────────────────
+  // ── Plantation — Mosambi journey ─────────────────────────────────────────
   {
     src: '/gallery/p1-bare-land.jpeg',
     stage: 'Stage 1',
@@ -18,73 +18,67 @@ const photos = [
     category: 'Plantation',
   },
   {
-    src: '/gallery/p3-coconut-saplings.jpeg',
-    stage: 'Stage 3',
-    caption: 'Young coconut saplings planted on hillside',
-    category: 'Plantation',
-  },
-  {
     src: '/gallery/p4-young-orchard-aerial.jpeg',
-    stage: 'Stage 4',
+    stage: 'Stage 3',
     caption: 'Young Mosambi orchard — aerial view',
     category: 'Plantation',
   },
   {
     src: '/gallery/p5-young-orchard-path.jpeg',
-    stage: 'Stage 5',
+    stage: 'Stage 4',
     caption: 'Growing orchard with farm paths',
     category: 'Plantation',
   },
   {
     src: '/gallery/p6-orchard-marked-plots.jpeg',
-    stage: 'Stage 6',
+    stage: 'Stage 5',
     caption: 'Plots marked, trees establishing',
     category: 'Plantation',
   },
   {
     src: '/gallery/p7-mature-orchard-mountain.jpeg',
-    stage: 'Stage 7',
+    stage: 'Stage 6',
     caption: 'Mature Mosambi orchard — mountain backdrop',
     category: 'Plantation',
   },
   {
     src: '/gallery/p8-mature-orchard-panoramic.jpeg',
-    stage: 'Stage 8',
+    stage: 'Stage 7',
     caption: 'Panoramic view — full canopy coverage',
     category: 'Plantation',
   },
   {
     src: '/gallery/p9-mature-orchard-balcony.jpeg',
-    stage: 'Stage 9',
+    stage: 'Stage 8',
     caption: 'Orchard viewed from farm house balcony',
     category: 'Plantation',
   },
   {
     src: '/gallery/p10-mature-orchard-full.jpeg',
-    stage: 'Stage 10',
+    stage: 'Stage 9',
     caption: 'Full grown Mosambi orchard',
     category: 'Plantation',
   },
   {
     src: '/gallery/p11-mature-orchard-wide.jpeg',
-    stage: 'Stage 11',
+    stage: 'Stage 10',
     caption: 'Wide orchard in perfect rows',
     category: 'Plantation',
   },
   {
     src: '/gallery/p12-mature-orchard-pole.jpeg',
-    stage: 'Stage 12',
+    stage: 'Stage 11',
     caption: 'Mature orchard with electricity connection',
     category: 'Plantation',
   },
   {
     src: '/gallery/m1-mature-mosambi.jpeg',
-    stage: 'Stage 13',
+    stage: 'Stage 12',
     caption: 'Dense mature Mosambi trees',
     category: 'Plantation',
   },
 
-  // ── Drip Irrigation ─────────────────────────────────────────────────────────
+  // ── Drip Irrigation ──────────────────────────────────────────────────────
   {
     src: '/gallery/d1-drip-pipe-emitter.jpeg',
     stage: 'Stage 1',
@@ -94,79 +88,23 @@ const photos = [
   {
     src: '/gallery/d2-drip-citrus-sapling.jpeg',
     stage: 'Stage 2',
-    caption: 'Citrus sapling with drip line',
+    caption: 'Mosambi sapling with drip line',
     category: 'Drip Irrigation',
   },
   {
     src: '/gallery/d3-drip-lemon-tree.jpeg',
     stage: 'Stage 3',
-    caption: 'Lemon tree — drip irrigation running',
-    category: 'Drip Irrigation',
-  },
-  {
-    src: '/gallery/d4-drip-tomato-rows.jpeg',
-    stage: 'Stage 4',
-    caption: 'Muskmelon rows with mulching & drip system',
+    caption: 'Mosambi tree — drip irrigation running',
     category: 'Drip Irrigation',
   },
   {
     src: '/gallery/d5-mulching-drip.jpeg',
-    stage: 'Stage 5',
+    stage: 'Stage 4',
     caption: 'Organic mulching around tree with drip',
     category: 'Drip Irrigation',
   },
-  {
-    src: '/gallery/d6-borewell-drilling.jpeg',
-    stage: 'Stage 6',
-    caption: 'Borewell drilling — water source for muskmelon farm',
-    category: 'Drip Irrigation',
-  },
-  {
-    src: '/gallery/d7-flower-drip.jpeg',
-    stage: 'Stage 7',
-    caption: 'Flowering plant thriving on drip system',
-    category: 'Drip Irrigation',
-  },
-  {
-    src: '/gallery/m2-field-ready.jpeg',
-    stage: 'Stage 8',
-    caption: 'Field prepared and drip lines laid',
-    category: 'Drip Irrigation',
-  },
 
-  // ── Harvest ─────────────────────────────────────────────────────────────────
-  {
-    src: '/gallery/h1-mango-harvest-pile.jpeg',
-    stage: 'Harvest',
-    caption: 'First muskmelon harvest — bumper yield',
-    category: 'Harvest',
-  },
-  {
-    src: '/gallery/h2-mangoes-on-tree.jpeg',
-    stage: 'Pre-Harvest',
-    caption: 'Mangoes ripening on tree',
-    category: 'Harvest',
-  },
-  {
-    src: '/gallery/h3-mango-tree-young.jpeg',
-    stage: 'Growing',
-    caption: 'Young mango tree with wind turbines',
-    category: 'Harvest',
-  },
-  {
-    src: '/gallery/h4-coconut-palm-young.jpeg',
-    stage: 'Growing',
-    caption: 'Young coconut palm on red-soil hillside',
-    category: 'Harvest',
-  },
-  {
-    src: '/gallery/m3-mango-tree-drip.jpeg',
-    stage: 'Growing',
-    caption: 'Mango tree on drip — healthy growth',
-    category: 'Harvest',
-  },
-
-  // ── Farm House ──────────────────────────────────────────────────────────────
+  // ── Farm House ───────────────────────────────────────────────────────────
   {
     src: '/gallery/fh1-construction-frame.jpeg',
     stage: 'Stage 1',
@@ -439,8 +377,8 @@ export default function Gallery() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
             {[
-              { num: '31+', label: 'Project Photos' },
-              { num: '4', label: 'Farm Categories' },
+              { num: '21+', label: 'Project Photos' },
+              { num: '3', label: 'Farm Categories' },
               { num: '12', label: 'Plantation Stages' },
               { num: '100%', label: 'Real Farm Work' },
             ].map(s => (
