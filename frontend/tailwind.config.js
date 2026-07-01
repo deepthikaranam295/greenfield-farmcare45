@@ -7,8 +7,8 @@ export default {
   theme: {
     extend: {
       colors: {
-        'gf-dark':     '#367C2B',
-        'gf-mid':      '#2A6121',
+        'gf-dark':     '#4A7C59',
+        'gf-mid':      '#3A6147',
         'gf-light':    '#FFDE00',
         'gf-pale':     '#FFF8C0',
         'gf-offwhite': '#F5F5F0',
