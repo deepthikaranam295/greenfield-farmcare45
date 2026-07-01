@@ -4,6 +4,7 @@ import Layout from '../components/Layout'
 const tabs = ['Mosambi Orchard']
 
 const photos = [
+  { src: '/gallery/farmer-mosambi-orchard.jpeg',   stage: 'Our Team', caption: 'Farm manager — present at every stage of the journey' },
   { src: '/gallery/p1-bare-land.jpeg',             stage: 'Stage 1',  caption: 'Bare land — ready to begin' },
   { src: '/gallery/p2-jcb-leveling.jpeg',          stage: 'Stage 2',  caption: 'JCB leveling the field' },
   { src: '/gallery/p4-young-orchard-aerial.jpeg',  stage: 'Stage 3',  caption: 'Young Mosambi orchard — aerial view' },
@@ -210,7 +211,7 @@ export default function Gallery() {
           >
             🌿 Mosambi Orchard
           </span>
-          <span className="text-sm text-gray-400">{photos.length} photos · Bare land to full orchard</span>
+          <span className="text-sm text-gray-400">{photos.length} photos · Farmer to full orchard</span>
         </div>
       </div>
 
@@ -239,7 +240,7 @@ export default function Gallery() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
             {[
-              { num: '12', label: 'Stages Documented' },
+              { num: '13', label: 'Photos in Gallery' },
               { num: '1', label: 'Mosambi Farm' },
               { num: '100%', label: 'Real Farm Work' },
               { num: '5+', label: 'Years Journey' },
