@@ -106,7 +106,7 @@ const photos = [
   {
     src: '/gallery/d4-drip-tomato-rows.jpeg',
     stage: 'Stage 4',
-    caption: 'Tomato rows with mulching & drip system',
+    caption: 'Muskmelon rows with mulching & drip system',
     category: 'Drip Irrigation',
   },
   {
@@ -118,7 +118,7 @@ const photos = [
   {
     src: '/gallery/d6-borewell-drilling.jpeg',
     stage: 'Stage 6',
-    caption: 'Borewell drilling — water source for farm',
+    caption: 'Borewell drilling — water source for muskmelon farm',
     category: 'Drip Irrigation',
   },
   {
@@ -138,7 +138,7 @@ const photos = [
   {
     src: '/gallery/h1-mango-harvest-pile.jpeg',
     stage: 'Harvest',
-    caption: 'First mango harvest — bumper yield',
+    caption: 'First muskmelon harvest — bumper yield',
     category: 'Harvest',
   },
   {
