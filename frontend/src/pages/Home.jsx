@@ -2,13 +2,13 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import Layout from '../components/Layout'
 
-const why = [
-  { icon: '👤', title: 'One Point of Contact',       desc: 'A single manager handles everything on your farm.' },
-  { icon: '📹', title: 'Watch Your Farm Live',        desc: 'CCTV cameras with live access on your phone.' },
-  { icon: '📲', title: 'WhatsApp Photo Reports',      desc: 'Monthly updates sent directly to your WhatsApp.' },
-  { icon: '🔒', title: 'Reliable Security',           desc: 'Regular patrols and motion alerts 24 hours a day.' },
-  { icon: '📋', title: 'Clear Quotes',                desc: 'Itemised quotes before any work begins.' },
-  { icon: '📅', title: 'On-Time Execution',           desc: 'Every task has a date and a completion update.' },
+const highlights = [
+  { icon: '👤', label: 'One Point of Contact' },
+  { icon: '📹', label: 'Live Camera Access' },
+  { icon: '📲', label: 'WhatsApp Reports' },
+  { icon: '🔒', label: 'Security Patrols' },
+  { icon: '💧', label: 'Drip Irrigation' },
+  { icon: '🌱', label: 'Plantation & Care' },
 ]
 
 export default function Home() {
@@ -21,32 +21,46 @@ export default function Home() {
         className="relative bg-gf-dark text-white"
         style={{ backgroundImage: 'linear-gradient(135deg, #1B4332 0%, #2D6A4F 60%, #40916C 100%)' }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
           <div className="max-w-2xl">
             <span className="inline-block bg-gf-pale text-gf-dark text-xs font-heading font-semibold px-3 py-1 rounded-full mb-6 tracking-wide uppercase">
               Farm Management
             </span>
-            <h1 className="font-heading font-extrabold text-4xl md:text-5xl lg:text-6xl leading-tight mb-6">
+            <h1 className="font-heading font-extrabold text-4xl md:text-5xl lg:text-6xl leading-tight mb-5">
               Your Farm.{' '}
               <span className="text-gf-pale">Fully Managed.</span>{' '}
               While You Work From Anywhere.
             </h1>
-            <p className="text-white/75 text-lg leading-relaxed mb-10">
-              We handle fencing, irrigation, planting, security and monitoring —
-              so you always know your land is in good hands.
+            <p className="text-white/70 text-lg leading-relaxed mb-8">
+              We handle everything your farm needs — so you always know it's in good hands.
             </p>
+
+            {/* Highlights */}
+            <div className="flex flex-wrap gap-2 mb-10">
+              {highlights.map(h => (
+                <span
+                  key={h.label}
+                  className="flex items-center gap-1.5 text-xs font-heading font-medium px-3 py-1.5 rounded-full"
+                  style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.85)' }}
+                >
+                  {h.icon} {h.label}
+                </span>
+              ))}
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-4">
               <Link to="/contact" className="btn-primary text-center">Request a Free Site Visit</Link>
-              <Link to="/services" className="btn-outline text-center">View Our Services</Link>
+              <Link to="/services" className="btn-outline text-center">View Services</Link>
             </div>
-            <div className="mt-8 pt-8 border-t border-white/20 flex items-center gap-4">
-              <span className="text-white/50 text-sm">Already a customer?</span>
+
+            <div className="mt-8 pt-7 border-t border-white/20 flex items-center gap-4">
+              <span className="text-white/40 text-sm">Already a customer?</span>
               {user ? (
-                <Link to="/dashboard" className="bg-white/10 hover:bg-white/20 text-white font-semibold text-sm px-5 py-2.5 rounded-xl border border-white/20 transition-colors">
-                  Go to Dashboard →
+                <Link to="/dashboard" className="bg-white/10 hover:bg-white/20 text-white font-semibold text-sm px-4 py-2 rounded-lg border border-white/20 transition-colors">
+                  Dashboard →
                 </Link>
               ) : (
-                <Link to="/login" className="bg-white/10 hover:bg-white/20 text-white font-semibold text-sm px-5 py-2.5 rounded-xl border border-white/20 transition-colors">
+                <Link to="/login" className="bg-white/10 hover:bg-white/20 text-white font-semibold text-sm px-4 py-2 rounded-lg border border-white/20 transition-colors">
                   Sign In →
                 </Link>
               )}
@@ -54,43 +68,23 @@ export default function Home() {
           </div>
         </div>
         <div className="absolute bottom-0 left-0 right-0">
-          <svg viewBox="0 0 1440 60" className="w-full fill-gf-offwhite" preserveAspectRatio="none">
-            <path d="M0,40 C360,80 1080,0 1440,40 L1440,60 L0,60 Z" />
+          <svg viewBox="0 0 1440 50" className="w-full fill-gf-offwhite" preserveAspectRatio="none">
+            <path d="M0,30 C360,60 1080,0 1440,30 L1440,50 L0,50 Z" />
           </svg>
         </div>
       </section>
 
-      {/* Why us */}
-      <section className="py-16 bg-gf-offwhite">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="font-heading font-bold text-gf-dark text-2xl md:text-3xl text-center mb-10">
-            Why GreenField?
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {why.map(w => (
-              <div key={w.title} className="bg-white rounded-xl border border-gf-pale px-5 py-4 flex items-start gap-3 hover:shadow-sm hover:border-gf-light transition-all duration-200">
-                <span className="text-xl mt-0.5">{w.icon}</span>
-                <div>
-                  <p className="font-heading font-semibold text-gf-dark text-sm mb-0.5">{w.title}</p>
-                  <p className="text-gray-500 text-xs leading-relaxed">{w.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="bg-gf-dark py-14">
+      {/* CTA strip */}
+      <section className="py-14 bg-gf-offwhite">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="font-heading font-bold text-white text-2xl md:text-3xl mb-3">
+          <h2 className="font-heading font-bold text-gf-dark text-2xl md:text-3xl mb-3">
             Ready to put your farm in good hands?
           </h2>
-          <p className="text-white/60 mb-8">
-            Book a free site visit — we assess your land and send you a clear plan within 48 hours.
+          <p className="text-gray-500 text-sm mb-8">
+            Request a free site visit — we assess your land and send a clear plan within 48 hours.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/contact" className="btn-outline text-center">Request Free Site Visit</Link>
+            <Link to="/contact" className="btn-primary text-center">Request Free Site Visit</Link>
             <a
               href="https://wa.me/919945100567?text=Hi%2C%20I%20want%20to%20know%20more%20about%20GreenField%20Farm%20Care"
               target="_blank"
