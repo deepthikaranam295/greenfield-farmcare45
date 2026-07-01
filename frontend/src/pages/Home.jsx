@@ -19,7 +19,7 @@ export default function Home() {
       {/* Hero */}
       <section
         className="relative bg-gf-dark text-white"
-        style={{ backgroundImage: 'linear-gradient(135deg, #1B4332 0%, #2D6A4F 60%, #40916C 100%)' }}
+        style={{ backgroundImage: 'linear-gradient(135deg, #367C2B 0%, #2A6121 60%, #1d4a17 100%)' }}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
           <div className="max-w-2xl">

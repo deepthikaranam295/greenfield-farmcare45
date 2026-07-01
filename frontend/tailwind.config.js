@@ -7,11 +7,11 @@ export default {
   theme: {
     extend: {
       colors: {
-        'gf-dark':   '#1B4332',
-        'gf-mid':    '#2D6A4F',
-        'gf-light':  '#40916C',
-        'gf-pale':   '#D8F3DC',
-        'gf-offwhite': '#F9FDF9',
+        'gf-dark':     '#367C2B',
+        'gf-mid':      '#2A6121',
+        'gf-light':    '#FFDE00',
+        'gf-pale':     '#FFF8C0',
+        'gf-offwhite': '#F5F5F0',
       },
       fontFamily: {
         heading: ['Poppins', 'sans-serif'],

@@ -48,13 +48,13 @@ function PhotoCard({ photo, index, onClick }) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           <span
             className="absolute top-3 left-3 text-xs font-bold px-3 py-1 rounded-full text-white tracking-wide"
-            style={{ background: 'rgba(18,59,42,0.85)', backdropFilter: 'blur(6px)' }}
+            style={{ background: 'rgba(54,124,43,0.85)', backdropFilter: 'blur(6px)' }}
           >
             {photo.stage}
           </span>
         </div>
-        <div className="px-4 py-3 border-t" style={{ borderColor: '#e8f5e9' }}>
-          <p className="text-sm font-medium leading-snug" style={{ color: '#1a3a2a' }}>{photo.caption}</p>
+        <div className="px-4 py-3 border-t" style={{ borderColor: '#FFF8C0' }}>
+          <p className="text-sm font-medium leading-snug" style={{ color: '#1d4a17' }}>{photo.caption}</p>
         </div>
       </div>
     </div>
@@ -86,7 +86,7 @@ function Lightbox({ index, onClose, onPrev, onNext }) {
       <div className="relative max-w-4xl w-full" onClick={(e) => e.stopPropagation()}>
         <img src={photo.src} alt={photo.caption} className="w-full max-h-[82vh] object-contain rounded-xl" />
         <div className="mt-4 text-center">
-          <span className="inline-block text-xs font-bold px-3 py-1 rounded-full text-white mb-2" style={{ background: '#2E7D32' }}>
+          <span className="inline-block text-xs font-bold px-3 py-1 rounded-full text-black mb-2" style={{ background: '#FFDE00' }}>
             {photo.stage}
           </span>
           <p className="text-white/90 text-sm font-medium">{photo.caption}</p>
@@ -113,7 +113,7 @@ export default function Gallery() {
     <Layout>
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden" style={{ background: '#0c2518', minHeight: 560 }}>
+      <section className="relative overflow-hidden" style={{ background: '#1d4a17', minHeight: 560 }}>
         {/* background orchard */}
         <img
           src="/gallery/p10-mature-orchard-full.jpeg"
@@ -127,13 +127,13 @@ export default function Gallery() {
           <div className="flex-1 text-white">
             <span
               className="inline-block text-xs font-semibold uppercase tracking-widest px-4 py-1.5 rounded-full mb-6"
-              style={{ background: 'rgba(116,201,154,0.15)', color: '#74c99a', border: '1px solid rgba(116,201,154,0.3)' }}
+              style={{ background: 'rgba(255,222,0,0.15)', color: '#FFDE00', border: '1px solid rgba(255,222,0,0.3)' }}
             >
               Our Farm Gallery
             </span>
             <h1 className="font-heading font-extrabold text-4xl md:text-5xl leading-tight mb-5">
               A Farm Built<br />
-              <span style={{ color: '#74c99a' }}>From the Ground Up</span>
+              <span style={{ color: '#FFDE00' }}>From the Ground Up</span>
             </h1>
             <p className="text-white/65 text-lg leading-relaxed mb-8 max-w-lg">
               From bare red soil to a thriving Mosambi orchard — every photo here
@@ -145,7 +145,7 @@ export default function Gallery() {
                 { n: '100%', l: 'Real Farm Work' },
               ].map(s => (
                 <div key={s.l} className="text-center px-5 py-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  <p className="font-extrabold text-2xl" style={{ color: '#74c99a' }}>{s.n}</p>
+                  <p className="font-extrabold text-2xl" style={{ color: '#FFDE00' }}>{s.n}</p>
                   <p className="text-white/50 text-xs mt-0.5">{s.l}</p>
                 </div>
               ))}
@@ -156,7 +156,7 @@ export default function Gallery() {
           <div className="flex-shrink-0 w-full max-w-xs">
             <div
               className="rounded-3xl overflow-hidden shadow-2xl"
-              style={{ border: '2px solid rgba(116,201,154,0.3)' }}
+              style={{ border: '2px solid rgba(255,222,0,0.3)' }}
             >
               <div className="relative">
                 <img
@@ -167,7 +167,7 @@ export default function Gallery() {
                 />
                 <div
                   className="absolute bottom-0 left-0 right-0 px-5 py-4"
-                  style={{ background: 'linear-gradient(to top, rgba(12,37,24,0.97) 0%, rgba(12,37,24,0.6) 70%, transparent 100%)' }}
+                  style={{ background: 'linear-gradient(to top, rgba(29,74,23,0.97) 0%, rgba(29,74,23,0.6) 70%, transparent 100%)' }}
                 >
                   <p className="text-white font-bold text-base leading-tight">Farm Owner</p>
                   <p className="text-white/60 text-xs mt-0.5">Managing this Mosambi orchard since day one</p>
@@ -175,7 +175,7 @@ export default function Gallery() {
               </div>
               <div
                 className="px-5 py-4 flex items-center gap-3"
-                style={{ background: 'rgba(116,201,154,0.08)' }}
+                style={{ background: 'rgba(255,222,0,0.08)' }}
               >
                 <span className="text-xl">🌿</span>
                 <p className="text-white/70 text-xs leading-relaxed">
@@ -189,9 +189,9 @@ export default function Gallery() {
       </section>
 
       {/* ── Section label ── */}
-      <div style={{ background: '#F7FAF7', borderBottom: '1px solid #d4e8d4' }}>
+      <div style={{ background: '#F5F5F0', borderBottom: '1px solid #FFF8C0' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-center gap-3 flex-wrap">
-          <span className="px-5 py-2 rounded-full text-sm font-semibold text-white" style={{ background: '#123B2A' }}>
+          <span className="px-5 py-2 rounded-full text-sm font-semibold text-white" style={{ background: '#2A6121' }}>
             🌿 Mosambi Orchard Journey
           </span>
           <span className="text-sm text-gray-400">{photos.length} photos · Bare land → full orchard</span>
@@ -199,7 +199,7 @@ export default function Gallery() {
       </div>
 
       {/* ── Photo Grid ── */}
-      <section className="py-14" style={{ background: '#F7FAF7' }}>
+      <section className="py-14" style={{ background: '#F5F5F0' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {photos.map((photo, i) => (
@@ -213,7 +213,7 @@ export default function Gallery() {
       <section
         ref={ownerRef}
         className="py-16"
-        style={{ background: '#fff', borderTop: '1px solid #e8f5e9' }}
+        style={{ background: '#fff', borderTop: '1px solid #FFF8C0' }}
       >
         <div
           className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center gap-10"
@@ -226,7 +226,7 @@ export default function Gallery() {
           <div className="flex-shrink-0">
             <div
               className="rounded-2xl overflow-hidden shadow-xl"
-              style={{ width: 200, height: 220, border: '3px solid #d4e8d4' }}
+              style={{ width: 200, height: 220, border: '3px solid #FFDE00' }}
             >
               <img
                 src="/gallery/farmer-mosambi-orchard.jpeg"
@@ -238,11 +238,11 @@ export default function Gallery() {
           <div>
             <span
               className="inline-block text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full mb-4"
-              style={{ background: '#e8f5e9', color: '#2E7D32' }}
+              style={{ background: '#FFF8C0', color: '#367C2B' }}
             >
               About the Farm Owner
             </span>
-            <h2 className="font-heading font-bold text-2xl md:text-3xl mb-4" style={{ color: '#123B2A' }}>
+            <h2 className="font-heading font-bold text-2xl md:text-3xl mb-4" style={{ color: '#1d4a17' }}>
               The person behind this orchard
             </h2>
             <p className="text-gray-500 leading-relaxed mb-4">
@@ -267,7 +267,7 @@ export default function Gallery() {
       </section>
 
       {/* ── CTA ── */}
-      <section className="py-16 text-center" style={{ background: '#123B2A' }}>
+      <section className="py-16 text-center" style={{ background: '#367C2B' }}>
         <div className="max-w-2xl mx-auto px-4">
           <h2 className="font-heading font-bold text-3xl text-white mb-3">
             Want Your Farm to Look Like This?
@@ -277,8 +277,8 @@ export default function Gallery() {
           </p>
           <a
             href="/contact"
-            className="inline-block font-semibold px-8 py-3 rounded-xl text-white transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5"
-            style={{ background: '#2E7D32', boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}
+            className="inline-block font-bold px-8 py-3 rounded-xl transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5"
+            style={{ background: '#FFDE00', color: '#000', boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}
           >
             Request Free Site Visit
           </a>

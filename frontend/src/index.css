@@ -12,13 +12,17 @@
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 bg-gf-mid text-white font-heading font-semibold px-6 py-3 rounded-lg hover:bg-gf-light active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gf-light focus:ring-offset-2;
+    @apply inline-flex items-center justify-center gap-2 font-heading font-bold px-6 py-3 rounded-lg active:scale-95 transition-all duration-200 focus:outline-none;
+    background: #FFDE00;
+    color: #000;
   }
+  .btn-primary:hover { background: #f0ce00; }
   .btn-outline-white {
-    @apply inline-flex items-center justify-center gap-2 border-2 border-white text-white font-heading font-semibold px-6 py-3 rounded-lg hover:bg-white hover:text-gf-dark active:scale-95 transition-all duration-200;
+    @apply inline-flex items-center justify-center gap-2 border-2 border-white text-white font-heading font-semibold px-6 py-3 rounded-lg hover:bg-white active:scale-95 transition-all duration-200;
+    hover:color: #367C2B;
   }
   .btn-outline-green {
-    @apply inline-flex items-center justify-center gap-2 border-2 border-gf-mid text-gf-mid font-heading font-semibold px-6 py-3 rounded-lg hover:bg-gf-mid hover:text-white active:scale-95 transition-all duration-200;
+    @apply inline-flex items-center justify-center gap-2 border-2 border-gf-dark text-gf-dark font-heading font-semibold px-6 py-3 rounded-lg hover:bg-gf-dark hover:text-white active:scale-95 transition-all duration-200;
   }
   .card {
     @apply bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200;
@@ -31,8 +35,14 @@
   .section-heading {
     @apply font-heading font-extrabold text-gf-dark leading-tight;
   }
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 border-2 font-heading font-bold px-6 py-3 rounded-lg active:scale-95 transition-all duration-200;
+    border-color: #FFDE00;
+    color: #FFDE00;
+  }
+  .btn-outline:hover { background: #FFDE00; color: #000; }
   .gradient-hero {
-    background: linear-gradient(135deg, #1B4332 0%, #2D6A4F 55%, #40916C 100%);
+    background: linear-gradient(135deg, #367C2B 0%, #2A6121 60%, #1d4a17 100%);
   }
   .text-balance { text-wrap: balance; }
 }
@@ -41,4 +51,4 @@ html { scroll-behavior: smooth; }
 
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #f1f1f1; }
-::-webkit-scrollbar-thumb { background: #40916C; border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: #367C2B; border-radius: 3px; }
