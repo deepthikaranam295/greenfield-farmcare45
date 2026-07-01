@@ -11,9 +11,6 @@ const photos = [
   { src: '/gallery/p8-mature-orchard-panoramic.jpeg',stage: 'Stage 7', caption: 'Panoramic view — full canopy coverage' },
   { src: '/gallery/p9-mature-orchard-balcony.jpeg', stage: 'Stage 8',  caption: 'Orchard from farm house balcony' },
   { src: '/gallery/p10-mature-orchard-full.jpeg',   stage: 'Stage 9',  caption: 'Full grown Mosambi orchard' },
-  { src: '/gallery/p11-mature-orchard-wide.jpeg',   stage: 'Stage 10', caption: 'Wide orchard in perfect rows' },
-  { src: '/gallery/p12-mature-orchard-pole.jpeg',   stage: 'Stage 11', caption: 'Mature orchard with electricity' },
-  { src: '/gallery/m1-mature-mosambi.jpeg',         stage: 'Stage 12', caption: 'Dense mature Mosambi trees' },
 ]
 
 function useInView(threshold = 0.15) {
